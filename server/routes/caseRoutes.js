@@ -1,0 +1,11 @@
+const express = require('express');
+const router = express.Router();
+const { createCase, getAllCases, getCaseDetails, updateCaseStatus } = require('../controllers/caseController');
+const { protect, authorize } = require('../middleware/authMiddleware');
+
+router.get('/', getAllCases);
+router.get('/:id', getCaseDetails);
+router.post('/', protect, authorize('patient'), createCase);
+router.patch('/:id/status', protect, authorize('hospital', 'admin'), updateCaseStatus);
+
+module.exports = router;
