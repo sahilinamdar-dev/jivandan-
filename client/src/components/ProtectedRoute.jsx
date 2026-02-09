@@ -6,7 +6,18 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     const { user, loading } = useAuth();
     const location = useLocation();
 
+    // Show loading if still checking auth
     if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            </div>
+        );
+    }
+
+    // If user is null but we have a valid token in localStorage, it might be a Google login in progress
+    // Show loading instead of redirecting immediately
+    if (!user && localStorage.getItem('trustaid_auth') === 'true') {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>

@@ -42,6 +42,7 @@ export const AuthProvider = ({ children }) => {
         setUser(res.data.user);
         api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
         localStorage.setItem('trustaid_auth', 'true');
+        localStorage.setItem('token', res.data.token);
         return res.data;
     };
 
@@ -69,6 +70,10 @@ export const AuthProvider = ({ children }) => {
         return await api.post('/auth/reset-password', { email, otp, newPassword });
     };
 
+    const setAuthUser = (userData) => {
+        setUser(userData);
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -78,6 +83,7 @@ export const AuthProvider = ({ children }) => {
             forgotPassword,
             verifyOTP,
             resetPassword,
+            setAuthUser,
             loading,
             api
         }}>
