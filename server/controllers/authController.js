@@ -6,6 +6,68 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const ErrorHandler = require('../utils/ErrorHandler');
 const asyncHandler = require('../utils/asyncHandler');
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+exports.googleLogin = async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ message: "No token provided" });
+    }
+
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, sub: googleId } = payload; // 'sub' is the unique Google ID
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // Create new user if they don't exist
+      user = await User.create({
+        name,
+        email,
+        password: crypto.randomBytes(16).toString('hex'), // Secure random password
+        role: "patient",
+        isEmailVerified: true,
+        status: "approved" // Or your default status
+      });
+    }
+
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    // Return the same structure as your manual login
+    res.json({ 
+      token: accessToken, 
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      } 
+    });
+  } catch (err) {
+    console.error("GOOGLE LOGIN ERROR:", err); // Check your terminal for this!
+    res.status(401).json({ message: "Google authentication failed", detail: err.message });
+  }
+};
+
 
 exports.register = asyncHandler(async (req, res, next) => {
     const { name, email, password, role, supporterType, phone, organizationDetails, gender, dob, idNumber, address, city, state } = req.body;
