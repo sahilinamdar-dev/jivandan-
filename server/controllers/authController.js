@@ -1,7 +1,11 @@
+
 const User = require('../models/User');
 const Patient = require('../models/Patient');
 const Hospital = require('../models/Hospital');
+
+
 const Donor = require('../models/Donor');
+
 
 
 const bcrypt = require('bcryptjs');
@@ -10,6 +14,10 @@ const crypto = require('crypto');
 
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokens');
 const { sendEmail, sendResetOTPEmail } = require('../utils/sendEmail');
+
+
+const ErrorHandler = require('../utils/ErrorHandler');
+const asyncHandler = require('../utils/asyncHandler');
 
 const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -62,6 +70,7 @@ exports.registerSupporter = asyncHandler(async (req, res, next) => {
     message: 'Supporter registered successfully. Please verify your email.'
   });
 });
+
 
 
 exports.registerPatient = asyncHandler(async (req, res, next) => {
@@ -117,7 +126,13 @@ exports.registerHospital = asyncHandler(async (req, res, next) => {
     registrationNumber,
     hospitalType,
     address,
+
+    contact,
+    authorizedPerson,
+    specialities   // ✅ extract this
+
     authorizedPerson
+
   } = req.body;
 
   const existingUser = await User.findOne({ email });
@@ -126,9 +141,14 @@ exports.registerHospital = asyncHandler(async (req, res, next) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 12);
+
+
+  // 1️⃣ Create User
+
   const verificationToken = crypto.randomBytes(32).toString('hex');
 
   // Create User (pending approval)
+
   const user = await User.create({
     name: hospitalName,
     email,
@@ -136,16 +156,35 @@ exports.registerHospital = asyncHandler(async (req, res, next) => {
     phone,
     role: 'hospital',
     status: 'pending',
+
+    activeCases: 0
+  });
+
+  // 2️⃣ Create Hospital profile
+  const hospital = await Hospital.create({
+
     verificationToken
   });
 
   // Create Hospital
   await Hospital.create({
+
     userId: user._id,
     hospitalName,
     registrationNumber,
     hospitalType,
     address,
+
+    contact,
+    authorizedPerson,
+    specialities   // ✅ SAVE IT
+  });
+
+  res.status(201).json({
+    success: true,
+    message: 'Hospital registered successfully',
+    hospital
+
     contact: {
       phone,
       email
@@ -156,6 +195,7 @@ exports.registerHospital = asyncHandler(async (req, res, next) => {
 
   res.status(201).json({
     message: 'Hospital registered successfully. Waiting for admin approval.'
+
   });
 });
 
@@ -321,6 +361,10 @@ exports.googleLogin = async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
+
+    res.json({ message: 'Password reset successfully' });
+});
+
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -343,4 +387,5 @@ exports.googleLogin = async (req, res) => {
     res.status(401).json({ message: "Google authentication failed", detail: err.message });
   }
 };
+
 
