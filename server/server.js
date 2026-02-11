@@ -8,12 +8,9 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
-
 app.use(cors({
-    origin: 'http://localhost:5173', // Must match your React URL exactly
-    credentials: true,               // Required for cookies/refresh tokens
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    origin: process.env.CLIENT_URL,
+    credentials: true,
 }));
 
 // Routes
