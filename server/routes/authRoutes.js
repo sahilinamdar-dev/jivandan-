@@ -32,6 +32,4 @@ router.post('/forgot-password', forgotPassword);
 router.post('/verify-otp', verifyOTP);
 router.post('/reset-password', resetPassword);
 
-// ⭐ NEW
-
 module.exports = router;

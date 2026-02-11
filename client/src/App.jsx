@@ -15,12 +15,11 @@ import ForgotPassword from './pages/ForgotPassword';
 import HowItWorks from './pages/HowItWorks';
 import ManageHospitals from './pages/ManageHospitals';
 import SubmitCase from './pages/SubmitCase';
+import HospitalCaseDetail from './pages/HospitalCaseDetail';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
     return (
-       
-
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthProvider>
                 <div className="min-h-screen bg-slate-50">
@@ -50,8 +49,20 @@ function App() {
                             </ProtectedRoute>
                         } />
 
+                        <Route path="/hospital-dashboard/case/:id" element={
+                            <ProtectedRoute allowedRoles={['hospital']}>
+                                <HospitalCaseDetail />
+                            </ProtectedRoute>
+                        } />
+
                         <Route path="/supporter-dashboard" element={
                             <ProtectedRoute allowedRoles={['supporter']}>
+                                <DonorDashboard />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/donor-dashboard" element={
+                            <ProtectedRoute allowedRoles={['supporter', 'donor']}>
                                 <DonorDashboard />
                             </ProtectedRoute>
                         } />

@@ -1,31 +1,44 @@
 const MedicalCase = require('../models/MedicalCase');
+const autoAssignHospital = require('../services/autoAssignHospital');
 
 exports.createCase = async (req, res) => {
-    try {
-        console.log("Full Request Body:", JSON.stringify(req.body, null, 2));
-        const caseData = { ...req.body, patientId: req.user.id };
+  try {
+    const caseData = { ...req.body, patientId: req.user.id };
 
-        // Basic Fraud Check: Flag duplicate phone numbers
-        const existingCase = await MedicalCase.findOne({ phone: caseData.phone });
-        if (existingCase) {
-            caseData.flags = ['duplicate_phone'];
-        }
-
-        const medicalCase = new MedicalCase({
-            ...caseData,
-            timeline: [{ status: 'pending', remarks: 'Case submitted for hospital verification' }]
-        });
-
-        await medicalCase.save();
-        res.status(201).json(medicalCase);
-    } catch (err) {
-        console.error("Case Creation Error:", err);
-        res.status(500).json({
-            message: err.message,
-            errors: err.errors
-        });
+    // Fraud check
+    const existingCase = await MedicalCase.findOne({ phone: caseData.phone });
+    if (existingCase) {
+      caseData.flags = ['duplicate_phone'];
     }
+
+    let medicalCase = await MedicalCase.create({
+      ...caseData,
+      timeline: [
+        { status: 'pending', remarks: 'Case submitted for hospital verification' }
+      ]
+    });
+
+    // 🔥 AUTO ASSIGN
+    const assignedCase = await autoAssignHospital(medicalCase._id);
+
+    // If assignment happened, return updated version
+    if (assignedCase) {
+      medicalCase = assignedCase;
+    }
+
+    res.status(201).json({
+      success: true,
+      case: medicalCase
+    });
+  } catch (err) {
+    console.error("Case Creation Error:", err);
+    res.status(500).json({
+      message: err.message,
+      errors: err.errors
+    });
+  }
 };
+
 
 exports.getAllCases = async (req, res) => {
     try {
@@ -48,18 +61,48 @@ exports.getCaseDetails = async (req, res) => {
 };
 
 exports.updateCaseStatus = async (req, res) => {
+  try {
+    const { status, remarks } = req.body;
+    const medicalCase = await MedicalCase.findById(req.params.id);
+
+    if (!medicalCase) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    // 🔐 Hospital can only act on assigned cases
+    if (
+      req.user.role === 'hospital' &&
+      medicalCase.assignedHospital?.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ message: 'Not your assigned case' });
+    }
+
+    medicalCase.status = status;
+
+    medicalCase.timeline.push({
+      status,
+      remarks
+    });
+
+    await medicalCase.save();
+
+    res.json({
+      success: true,
+      case: medicalCase
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getHospitalCases = async (req, res) => {
     try {
-        const { status, remarks } = req.body;
-        const medicalCase = await MedicalCase.findById(req.params.id);
-        if (!medicalCase) return res.status(404).json({ message: 'Case not found' });
-
-        medicalCase.status = status;
-        if (req.user.role === 'hospital') medicalCase.hospitalId = req.user.id;
-
-        medicalCase.timeline.push({ status, remarks });
-        await medicalCase.save();
-
-        res.json(medicalCase);
+        const { status = 'pending' } = req.query;
+        const cases = await MedicalCase.find({
+            hospitalId: req.user.id,
+            status: status
+        }).populate('patientId', 'name email phone');
+        res.json(cases);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
