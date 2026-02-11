@@ -59,7 +59,7 @@ const medicalCaseSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: ['pending', 'hospital_verified', 'live', 'completed', 'rejected'],
-        default: 'pending'
+        default: 'live'
     },
     consents: {
         sharePublicly: { type: Boolean, required: true },

@@ -6,7 +6,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     const { user, loading } = useAuth();
     const location = useLocation();
 
-    // Show loading if still checking auth
+    // Show spinner while checking authentication
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -15,23 +15,13 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
         );
     }
 
-    // If user is null but we have a valid token in localStorage, it might be a Google login in progress
-    // Show loading instead of redirecting immediately
-    if (!user && localStorage.getItem('trustaid_auth') === 'true') {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-            </div>
-        );
-    }
-
+    // If not logged in → go to login
     if (!user) {
-        // Redirect to login if not authenticated
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
+    // Role check
     if (allowedRoles && !allowedRoles.includes(user.role)) {
-        // Redirect to home if user doesn't have the required role
         return <Navigate to="/" replace />;
     }
 

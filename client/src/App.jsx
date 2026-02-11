@@ -9,6 +9,7 @@ import CaseListing from './pages/CaseListing';
 import CaseDetail from './pages/CaseDetail';
 import PatientDashboard from './pages/PatientDashboard';
 import HospitalDashboard from './pages/HospitalDashboard';
+import DonorDashboard from './pages/DonorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ForgotPassword from './pages/ForgotPassword';
 import HowItWorks from './pages/HowItWorks';
@@ -46,6 +47,12 @@ function App() {
                         <Route path="/hospital-dashboard" element={
                             <ProtectedRoute allowedRoles={['hospital']}>
                                 <HospitalDashboard />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/supporter-dashboard" element={
+                            <ProtectedRoute allowedRoles={['supporter']}>
+                                <DonorDashboard />
                             </ProtectedRoute>
                         } />
 
