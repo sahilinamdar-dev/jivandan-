@@ -59,6 +59,7 @@ const hospitalSchema = new mongoose.Schema(
       registrationCertificate: String,
       license: String
     },
+
     activeCases: {
   type: Number,
   default: 0
@@ -70,18 +71,26 @@ maxCapacity: {
 },
 
 
+
     // 🔴 Soft Delete
     isActive: {
       type: Boolean,
       default: true
+
     },
     specialities: {
   type: [String], // ["cancer", "kidney", "liver"]
   required: true
 }
 
+
+    }
+
   },
   { timestamps: true }
 );
+
+
+module.exports = mongoose.model('Hospital', hospitalSchema);
 
 module.exports = mongoose.model('Hospital', hospitalSchema);

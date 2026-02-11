@@ -6,6 +6,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     const { user, loading } = useAuth();
     const location = useLocation();
 
+    // Show spinner while checking authentication
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -14,13 +15,13 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
         );
     }
 
+    // If not logged in → go to login
     if (!user) {
-        // Redirect to login if not authenticated
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
+    // Role check
     if (allowedRoles && !allowedRoles.includes(user.role)) {
-        // Redirect to home if user doesn't have the required role
         return <Navigate to="/" replace />;
     }
 

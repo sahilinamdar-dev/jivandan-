@@ -35,7 +35,11 @@ const Navbar = () => {
 
                     {/* Desktop Menu */}
                     <div className="hidden md:flex items-center space-x-8">
-                        <Link to="/cases" className="text-slate-600 hover:text-indigo-600 font-medium transition-colors">Verified Cases</Link>
+                        {user?.role === 'hospital' ? (
+                            <Link to="/hospital-dashboard?tab=verified" className="text-slate-600 hover:text-indigo-600 font-medium transition-colors">My Verified Cases</Link>
+                        ) : (
+                            <Link to="/cases" className="text-slate-600 hover:text-indigo-600 font-medium transition-colors">Verified Cases</Link>
+                        )}
                         <Link to="/how-it-works" className="text-slate-600 hover:text-indigo-600 font-medium transition-colors">How it Works</Link>
                         {user ? (
                             <div className="flex items-center space-x-4">
@@ -53,7 +57,7 @@ const Navbar = () => {
                         ) : (
                             <div className="flex items-center space-x-4">
                                 <Link to="/login" className="text-slate-600 hover:text-indigo-600 font-medium">Login</Link>
-                                <Link to="/register" className="px-6 py-2.5 rounded-full premium-gradient text-white font-semibold shadow-lg shadow-indigo-200 hover:scale-105 transition-transform">
+                                <Link to="/register" className="btn-primary btn-sm">
                                     Join Now
                                 </Link>
                             </div>
@@ -78,14 +82,18 @@ const Navbar = () => {
                         exit={{ opacity: 0, y: -20 }}
                         className="md:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-6 space-y-4"
                     >
-                        <Link to="/cases" className="block text-slate-600 font-medium">Verified Cases</Link>
+                        {user?.role === 'hospital' ? (
+                            <Link to="/hospital-dashboard?tab=verified" className="block text-slate-600 font-medium">My Verified Cases</Link>
+                        ) : (
+                            <Link to="/cases" className="block text-slate-600 font-medium">Verified Cases</Link>
+                        )}
                         <Link to="/how-it-works" className="block text-slate-600 font-medium">How it Works</Link>
                         {user ? (
                             <Link to={`/${user.role}-dashboard`} className="block text-indigo-600 font-semibold">{user.name}'s Dashboard</Link>
                         ) : (
                             <>
                                 <Link to="/login" className="block text-slate-600 font-medium">Login</Link>
-                                <Link to="/register" className="block text-center px-6 py-2.5 rounded-full premium-gradient text-white font-semibold shadow-lg">Join Now</Link>
+                                <Link to="/register" className="btn-primary block text-center">Join Now</Link>
                             </>
                         )}
                     </motion.div>

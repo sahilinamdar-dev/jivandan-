@@ -94,3 +94,16 @@ exports.updateCaseStatus = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.getHospitalCases = async (req, res) => {
+    try {
+        const { status = 'pending' } = req.query;
+        const cases = await MedicalCase.find({
+            hospitalId: req.user.id,
+            status: status
+        }).populate('patientId', 'name email phone');
+        res.json(cases);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
