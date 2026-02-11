@@ -1,12 +1,7 @@
-
 const User = require('../models/User');
 const Patient = require('../models/Patient');
 const Hospital = require('../models/Hospital');
-
-
 const Donor = require('../models/Donor');
-
-
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -15,15 +10,11 @@ const crypto = require('crypto');
 const { generateAccessToken, generateRefreshToken } = require('../utils/tokens');
 const { sendEmail, sendResetOTPEmail } = require('../utils/sendEmail');
 
-
 const ErrorHandler = require('../utils/ErrorHandler');
 const asyncHandler = require('../utils/asyncHandler');
 
 const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-const ErrorHandler = require('../utils/ErrorHandler');
-const asyncHandler = require('../utils/asyncHandler');
 
 exports.registerSupporter = asyncHandler(async (req, res, next) => {
   const { name, email, password, phone, donorType, organizationDetails, address, city, state, country } = req.body;
@@ -71,8 +62,6 @@ exports.registerSupporter = asyncHandler(async (req, res, next) => {
   });
 });
 
-
-
 exports.registerPatient = asyncHandler(async (req, res, next) => {
   const { name, email, password, phone, gender, dob, emergencyContact, address } = req.body;
 
@@ -116,7 +105,6 @@ exports.registerPatient = asyncHandler(async (req, res, next) => {
   });
 });
 
-
 exports.registerHospital = asyncHandler(async (req, res, next) => {
   const {
     hospitalName,
@@ -126,13 +114,9 @@ exports.registerHospital = asyncHandler(async (req, res, next) => {
     registrationNumber,
     hospitalType,
     address,
-
     contact,
     authorizedPerson,
-    specialities   // ✅ extract this
-
-    authorizedPerson
-
+    specialities
   } = req.body;
 
   const existingUser = await User.findOne({ email });
@@ -141,14 +125,9 @@ exports.registerHospital = asyncHandler(async (req, res, next) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 12);
-
-
-  // 1️⃣ Create User
-
   const verificationToken = crypto.randomBytes(32).toString('hex');
 
   // Create User (pending approval)
-
   const user = await User.create({
     name: hospitalName,
     email,
@@ -156,49 +135,27 @@ exports.registerHospital = asyncHandler(async (req, res, next) => {
     phone,
     role: 'hospital',
     status: 'pending',
-
-    activeCases: 0
-  });
-
-  // 2️⃣ Create Hospital profile
-  const hospital = await Hospital.create({
-
     verificationToken
   });
 
-  // Create Hospital
-  await Hospital.create({
-
+  // Create Hospital profile
+  const hospital = await Hospital.create({
     userId: user._id,
     hospitalName,
     registrationNumber,
     hospitalType,
     address,
-
     contact,
     authorizedPerson,
-    specialities   // ✅ SAVE IT
+    specialities
   });
 
   res.status(201).json({
     success: true,
-    message: 'Hospital registered successfully',
+    message: 'Hospital registered successfully. Waiting for admin approval.',
     hospital
-
-    contact: {
-      phone,
-      email
-    },
-    authorizedPerson
-  });
-
-
-  res.status(201).json({
-    message: 'Hospital registered successfully. Waiting for admin approval.'
-
   });
 });
-
 
 exports.login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
@@ -235,7 +192,6 @@ exports.login = asyncHandler(async (req, res, next) => {
     }
   });
 });
-
 
 exports.refreshToken = asyncHandler(async (req, res, next) => {
   const refreshToken = req.cookies.refreshToken;
@@ -339,7 +295,7 @@ exports.googleLogin = async (req, res) => {
     });
 
     const payload = ticket.getPayload();
-    const { email, name, sub: googleId } = payload; // 'sub' is the unique Google ID
+    const { email, name, sub: googleId } = payload;
 
     let user = await User.findOne({ email });
 
@@ -348,10 +304,10 @@ exports.googleLogin = async (req, res) => {
       user = await User.create({
         name,
         email,
-        password: crypto.randomBytes(16).toString('hex'), // Secure random password
+        password: crypto.randomBytes(16).toString('hex'),
         role: "patient",
         isEmailVerified: true,
-        status: "approved" // Or your default status
+        status: "approved"
       });
     }
 
@@ -361,10 +317,6 @@ exports.googleLogin = async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
-
-    res.json({ message: 'Password reset successfully' });
-});
-
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -372,7 +324,6 @@ exports.googleLogin = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Return the same structure as your manual login
     res.json({
       token: accessToken,
       user: {
@@ -383,9 +334,7 @@ exports.googleLogin = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error("GOOGLE LOGIN ERROR:", err); // Check your terminal for this!
+    console.error("GOOGLE LOGIN ERROR:", err);
     res.status(401).json({ message: "Google authentication failed", detail: err.message });
   }
 };
-
-

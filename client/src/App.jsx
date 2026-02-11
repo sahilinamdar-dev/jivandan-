@@ -55,6 +55,18 @@ function App() {
                             </ProtectedRoute>
                         } />
 
+                        <Route path="/supporter-dashboard" element={
+                            <ProtectedRoute allowedRoles={['supporter']}>
+                                <DonorDashboard />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/donor-dashboard" element={
+                            <ProtectedRoute allowedRoles={['supporter', 'donor']}>
+                                <DonorDashboard />
+                            </ProtectedRoute>
+                        } />
+
                         <Route path="/admin-dashboard" element={
                             <ProtectedRoute allowedRoles={['admin']}>
                                 <AdminDashboard />
