@@ -14,6 +14,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import HowItWorks from './pages/HowItWorks';
 import ManageHospitals from './pages/ManageHospitals';
 import SubmitCase from './pages/SubmitCase';
+import HospitalCaseDetail from './pages/HospitalCaseDetail';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -44,6 +45,12 @@ function App() {
                         <Route path="/hospital-dashboard" element={
                             <ProtectedRoute allowedRoles={['hospital']}>
                                 <HospitalDashboard />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/hospital-dashboard/case/:id" element={
+                            <ProtectedRoute allowedRoles={['hospital']}>
+                                <HospitalCaseDetail />
                             </ProtectedRoute>
                         } />
 
