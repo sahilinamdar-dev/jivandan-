@@ -20,8 +20,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
     return (
-       
-
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthProvider>
                 <div className="min-h-screen bg-slate-50">
