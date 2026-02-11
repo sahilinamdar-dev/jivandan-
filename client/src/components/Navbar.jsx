@@ -57,7 +57,7 @@ const Navbar = () => {
                         ) : (
                             <div className="flex items-center space-x-4">
                                 <Link to="/login" className="text-slate-600 hover:text-indigo-600 font-medium">Login</Link>
-                                <Link to="/register" className="px-6 py-2.5 rounded-full premium-gradient text-white font-semibold shadow-lg shadow-indigo-200 hover:scale-105 transition-transform">
+                                <Link to="/register" className="btn-primary btn-sm">
                                     Join Now
                                 </Link>
                             </div>
@@ -93,7 +93,7 @@ const Navbar = () => {
                         ) : (
                             <>
                                 <Link to="/login" className="block text-slate-600 font-medium">Login</Link>
-                                <Link to="/register" className="block text-center px-6 py-2.5 rounded-full premium-gradient text-white font-semibold shadow-lg">Join Now</Link>
+                                <Link to="/register" className="btn-primary block text-center">Join Now</Link>
                             </>
                         )}
                     </motion.div>

@@ -24,11 +24,11 @@ h6 {
 }
 
 .premium-gradient {
-  @apply bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500;
+  @apply bg-gradient-to-br from-teal-500 via-cyan-600 to-blue-600;
 }
 
 .text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-cyan-500;
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-blue-600;
 }
 
 /* Progress Bar */
@@ -37,7 +37,7 @@ h6 {
 }
 
 .progress-fill {
-  @apply h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-1000 ease-out relative overflow-hidden;
+  @apply h-full rounded-full bg-gradient-to-r from-teal-400 to-blue-500 transition-all duration-1000 ease-out relative overflow-hidden;
 }
 
 .progress-fill::after {

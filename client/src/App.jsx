@@ -9,6 +9,7 @@ import CaseListing from './pages/CaseListing';
 import CaseDetail from './pages/CaseDetail';
 import PatientDashboard from './pages/PatientDashboard';
 import HospitalDashboard from './pages/HospitalDashboard';
+import DonorDashboard from './pages/DonorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ForgotPassword from './pages/ForgotPassword';
 import HowItWorks from './pages/HowItWorks';
@@ -19,6 +20,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
     return (
+       
+
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthProvider>
                 <div className="min-h-screen bg-slate-50">

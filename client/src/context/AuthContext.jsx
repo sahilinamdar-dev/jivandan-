@@ -14,73 +14,95 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // 🔹 Restore auth on refresh
     useEffect(() => {
-        const checkAuth = async () => {
-            if (localStorage.getItem('trustaid_auth') !== 'true') {
+        const restoreAuth = async () => {
+            const token = localStorage.getItem('token');
+
+            if (!token) {
                 setLoading(false);
                 return;
             }
+
             try {
-                const res = await api.post('/auth/refresh-token');
-                if (res.data.token) {
-                    api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-                    setUser(res.data.user);
-                }
+                // attach token
+                api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+                // verify token by fetching current user
+                const res = await api.get('/auth/me');
+                setUser(res.data.user);
             } catch (err) {
-                if (err.response?.status === 401) {
-                    localStorage.removeItem('trustaid_auth');
-                }
+                // token invalid → clear storage
+                localStorage.removeItem('token');
+                delete api.defaults.headers.common['Authorization'];
+                setUser(null);
             } finally {
                 setLoading(false);
             }
         };
-        checkAuth();
+
+        restoreAuth();
     }, []);
 
+    // 🔹 Login
     const login = async (email, password) => {
         const res = await api.post('/auth/login', { email, password });
-        setUser(res.data.user);
-        api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-        localStorage.setItem('trustaid_auth', 'true');
+
+        const { token, user } = res.data;
+
+        localStorage.setItem('token', token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        setUser(user);
+
         return res.data;
     };
 
+    // 🔹 Register
     const register = async (userData) => {
         const res = await api.post('/auth/register', userData);
         return res.data;
     };
 
+    // 🔹 Logout
     const logout = async () => {
-        await api.post('/auth/logout');
-        setUser(null);
-        localStorage.removeItem('trustaid_auth');
+        try {
+            await api.post('/auth/logout');
+        } catch {}
+
+        localStorage.removeItem('token');
         delete api.defaults.headers.common['Authorization'];
+        setUser(null);
     };
 
-    const forgotPassword = async (email) => {
-        return await api.post('/auth/forgot-password', { email });
+    // Expose a setter so other components (e.g. Google login) can update context user
+    const setAuthUser = (u) => {
+        // ensure axios instance uses token from storage if available
+        const token = localStorage.getItem('token');
+        if (token) api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        setUser(u);
     };
 
-    const verifyOTP = async (email, otp) => {
-        return await api.post('/auth/verify-otp', { email, otp });
-    };
-
-    const resetPassword = async (email, otp, newPassword) => {
-        return await api.post('/auth/reset-password', { email, otp, newPassword });
-    };
+    // 🔹 Forgot / Reset Password
+    const forgotPassword = (email) => api.post('/auth/forgot-password', { email });
+    const verifyOTP = (email, otp) => api.post('/auth/verify-otp', { email, otp });
+    const resetPassword = (email, otp, newPassword) =>
+        api.post('/auth/reset-password', { email, otp, newPassword });
 
     return (
-        <AuthContext.Provider value={{
-            user,
-            login,
-            register,
-            logout,
-            forgotPassword,
-            verifyOTP,
-            resetPassword,
-            loading,
-            api
-        }}>
+        <AuthContext.Provider
+            value={{
+                user,
+                setAuthUser,
+                login,
+                register,
+                logout,
+                forgotPassword,
+                verifyOTP,
+                resetPassword,
+                loading,
+                api,
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );
