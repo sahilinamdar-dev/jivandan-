@@ -237,48 +237,62 @@ exports.verifyEmail = asyncHandler(async (req, res, next) => {
 });
 
 exports.forgotPassword = asyncHandler(async (req, res, next) => {
+
   const { email } = req.body;
+
   const user = await User.findOne({ email });
   if (!user) return next(new ErrorHandler('User not found', 404));
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  user.resetPasswordOTP = otp;
-  user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 mins
-  await user.save();
+
+  // 🔥 Store OTP in Redis (10 min expiry)
+  await redisClient.setEx(
+    `reset:otp:${email}`,
+    600,
+    otp
+  );
 
   await sendResetOTPEmail(user.email, otp);
+
   res.json({ message: 'OTP sent to your email' });
+
 });
+
 
 exports.verifyOTP = asyncHandler(async (req, res, next) => {
-  const { email, otp } = req.body;
-  const user = await User.findOne({
-    email,
-    resetPasswordOTP: otp,
-    resetPasswordExpires: { $gt: Date.now() }
-  });
 
-  if (!user) return next(new ErrorHandler('Invalid or expired OTP', 400));
+  const { email, otp } = req.body;
+
+  const storedOtp = await redisClient.get(`reset:otp:${email}`);
+
+  if (!storedOtp || storedOtp !== otp) {
+    return next(new ErrorHandler('Invalid or expired OTP', 400));
+  }
 
   res.json({ message: 'OTP verified successfully' });
+
 });
-
 exports.resetPassword = asyncHandler(async (req, res, next) => {
-  const { email, otp, newPassword } = req.body;
-  const user = await User.findOne({
-    email,
-    resetPasswordOTP: otp,
-    resetPasswordExpires: { $gt: Date.now() }
-  });
 
-  if (!user) return next(new ErrorHandler('Invalid or expired OTP', 400));
+  const { email, otp, newPassword } = req.body;
+
+  const storedOtp = await redisClient.get(`reset:otp:${email}`);
+
+  if (!storedOtp || storedOtp !== otp) {
+    return next(new ErrorHandler('Invalid or expired OTP', 400));
+  }
+
+  const user = await User.findOne({ email });
+  if (!user) return next(new ErrorHandler('User not found', 404));
 
   user.password = await bcrypt.hash(newPassword, 12);
-  user.resetPasswordOTP = undefined;
-  user.resetPasswordExpires = undefined;
   await user.save();
 
+  // 🔥 Delete OTP after successful reset
+  await redisClient.del(`reset:otp:${email}`);
+
   res.json({ message: 'Password reset successfully' });
+
 });
 
 exports.googleLogin = async (req, res) => {
