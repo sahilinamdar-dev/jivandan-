@@ -28,12 +28,12 @@ const patientSchema = new mongoose.Schema({
 
   // 🏠 Address Info
   // ✅ FIXED ADDRESS STRUCTURE
-    address: {
-      line1: { type: String, required: true },
-      city: { type: String, required: true },
-      state: { type: String, required: true },
-      pincode: { type: String, required: true }
-    },
+  address: {
+    line1: { type: String, required: true },
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    pincode: { type: String, required: true }
+  },
 
   // 🆔 Identity (optional but realistic)
   idProof: {
@@ -76,4 +76,3 @@ const patientSchema = new mongoose.Schema({
 
 
 module.exports = mongoose.model('Patient', patientSchema);
-
