@@ -333,8 +333,11 @@ exports.updateHospitalStatus = asyncHandler(async (req, res, next) => {
 
   // 🔥 CACHE INVALIDATION (VERY IMPORTANT)
   await redisClient.del("admin:hospitals:all");
-  await redisClient.del("admin:hospitals:pending");
-  await redisClient.del("public:hospitals:approved");
+await redisClient.del("admin:hospitals:pending");
+await redisClient.del("admin:hospitals:approved");
+await redisClient.del("admin:hospitals:rejected");
+await redisClient.del("admin:hospitals:blacklisted");
+await redisClient.del("public:hospitals:approved");
 
   res.status(200).json({
     success: true,
@@ -416,6 +419,96 @@ exports.getAllTransactions = asyncHandler(async (req, res) => {
     success: true,
     count: transactions.length,
     transactions
+  });
+
+});
+
+/* ======================================================
+   3️⃣ GET REJECTED HOSPITALS (ADMIN)
+====================================================== */
+
+exports.getRejectedHospitals = asyncHandler(async (req, res) => {
+
+  const cacheKey = "admin:hospitals:rejected";
+
+  const cached = await redisClient.get(cacheKey);
+
+  if (cached) {
+    console.log("📦 Rejected Hospitals from Redis");
+
+    return res.status(200).json({
+      success: true,
+      ...JSON.parse(cached)
+    });
+  }
+
+  console.log("🗄 Rejected Hospitals from MongoDB");
+
+  const users = await User.find({
+    role: 'hospital',
+    status: 'rejected'
+  }).select('-password');
+
+  const hospitals = await Hospital.find({
+    userId: { $in: users.map(u => u._id) }
+  }).populate('userId', 'name email status');
+
+  const result = {
+    count: hospitals.length,
+    hospitals
+  };
+
+  // Cache for 2 minutes
+  await redisClient.setEx(cacheKey, 120, JSON.stringify(result));
+
+  res.status(200).json({
+    success: true,
+    ...result
+  });
+
+});
+
+/* ======================================================
+   4️⃣ GET BLACKLISTED HOSPITALS (ADMIN)
+====================================================== */
+
+exports.getBlacklistedHospitals = asyncHandler(async (req, res) => {
+
+  const cacheKey = "admin:hospitals:blacklisted";
+
+  const cached = await redisClient.get(cacheKey);
+
+  if (cached) {
+    console.log("📦 Blacklisted Hospitals from Redis");
+
+    return res.status(200).json({
+      success: true,
+      ...JSON.parse(cached)
+    });
+  }
+
+  console.log("🗄 Blacklisted Hospitals from MongoDB");
+
+  const users = await User.find({
+    role: 'hospital',
+    status: 'blacklisted'
+  }).select('-password');
+
+  const hospitals = await Hospital.find({
+    userId: { $in: users.map(u => u._id) }
+  }).populate('userId', 'name email status');
+
+  const result = {
+    count: hospitals.length,
+    hospitals
+  };
+
+  // Cache for 2 minutes
+  await redisClient.setEx(cacheKey, 120, JSON.stringify(result));
+
+  res.status(200).json({
+    success: true,
+    ...result
   });
 
 });
