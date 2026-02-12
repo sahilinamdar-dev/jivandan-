@@ -14,6 +14,19 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // 🔹 Axios interceptor to attach token
+    useEffect(() => {
+        const interceptor = api.interceptors.request.use((config) => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+            return config;
+        });
+
+        return () => api.interceptors.request.eject(interceptor);
+    }, []);
+
     // 🔹 Restore auth on refresh
     useEffect(() => {
         const restoreAuth = async () => {
@@ -25,16 +38,13 @@ export const AuthProvider = ({ children }) => {
             }
 
             try {
-                // attach token
-                api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
                 // verify token by fetching current user
                 const res = await api.get('/auth/me');
                 setUser(res.data.user);
             } catch (err) {
+                console.error("Auth restoration failed:", err.response?.data?.message || err.message);
                 // token invalid → clear storage
                 localStorage.removeItem('token');
-                delete api.defaults.headers.common['Authorization'];
                 setUser(null);
             } finally {
                 setLoading(false);
@@ -51,7 +61,6 @@ export const AuthProvider = ({ children }) => {
         const { token, user } = res.data;
 
         localStorage.setItem('token', token);
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         setUser(user);
 
         return res.data;
@@ -67,7 +76,7 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         try {
             await api.post('/auth/logout');
-        } catch {}
+        } catch { }
 
         localStorage.removeItem('token');
         delete api.defaults.headers.common['Authorization'];
