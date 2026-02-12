@@ -203,6 +203,7 @@
 const User = require('../models/User');
 const Hospital = require('../models/Hospital');
 const Donation = require('../models/Donation');
+const MedicalCase = require('../models/MedicalCase');
 const { redisClient } = require('../config/redis');
 const ErrorHandler = require('../utils/ErrorHandler');
 const asyncHandler = require('../utils/asyncHandler');
@@ -281,7 +282,7 @@ exports.getPendingHospitals = asyncHandler(async (req, res) => {
 
   const hospitals = await Hospital.find({
     userId: { $in: users.map(u => u._id) }
-  }).populate('userId', 'name email status');
+  }).populate('userId', 'name email status statusReason');
 
   const result = {
     count: hospitals.length,
@@ -333,11 +334,11 @@ exports.updateHospitalStatus = asyncHandler(async (req, res, next) => {
 
   // 🔥 CACHE INVALIDATION (VERY IMPORTANT)
   await redisClient.del("admin:hospitals:all");
-await redisClient.del("admin:hospitals:pending");
-await redisClient.del("admin:hospitals:approved");
-await redisClient.del("admin:hospitals:rejected");
-await redisClient.del("admin:hospitals:blacklisted");
-await redisClient.del("public:hospitals:approved");
+  await redisClient.del("admin:hospitals:pending");
+  await redisClient.del("admin:hospitals:approved");
+  await redisClient.del("admin:hospitals:rejected");
+  await redisClient.del("admin:hospitals:blacklisted");
+  await redisClient.del("public:hospitals:approved");
 
   res.status(200).json({
     success: true,
@@ -373,9 +374,8 @@ exports.getApprovedHospitals = asyncHandler(async (req, res) => {
     .populate({
       path: 'userId',
       match: { status: 'approved' },
-      select: 'name'
-    })
-    .select('hospitalName address contact');
+      select: 'name email status statusReason'
+    });
 
   const approvedHospitals = hospitals.filter(h => h.userId);
 
@@ -405,13 +405,13 @@ exports.getAllTransactions = asyncHandler(async (req, res) => {
   const { supporterType } = req.query;
 
   let transactions = await Donation.find({ status: 'completed' })
-    .populate('supporterId', 'name email role supporterType')
-    .populate('caseId', 'title')
+    .populate('supporterUser', 'name email role supporterType')
+    .populate('medicalCase', 'title')
     .sort('-createdAt');
 
   if (supporterType) {
     transactions = transactions.filter(
-      t => t.supporterId?.supporterType === supporterType
+      t => t.supporterUser?.supporterType === supporterType
     );
   }
 
@@ -451,7 +451,7 @@ exports.getRejectedHospitals = asyncHandler(async (req, res) => {
 
   const hospitals = await Hospital.find({
     userId: { $in: users.map(u => u._id) }
-  }).populate('userId', 'name email status');
+  }).populate('userId', 'name email status statusReason');
 
   const result = {
     count: hospitals.length,
@@ -496,7 +496,7 @@ exports.getBlacklistedHospitals = asyncHandler(async (req, res) => {
 
   const hospitals = await Hospital.find({
     userId: { $in: users.map(u => u._id) }
-  }).populate('userId', 'name email status');
+  }).populate('userId', 'name email status statusReason');
 
   const result = {
     count: hospitals.length,
@@ -509,6 +509,85 @@ exports.getBlacklistedHospitals = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     ...result
+  });
+
+});
+
+/* ======================================================
+   6️⃣ GET DASHBOARD STATS (ADMIN)
+====================================================== */
+
+exports.getDashboardStats = asyncHandler(async (req, res) => {
+  const pendingHospitals = await User.countDocuments({ role: 'hospital', status: 'pending' });
+  const approvedHospitals = await User.countDocuments({ role: 'hospital', status: 'approved' });
+  const rejectedHospitals = await User.countDocuments({ role: 'hospital', status: 'rejected' });
+  const blacklistedHospitals = await User.countDocuments({ role: 'hospital', status: 'blacklisted' });
+  const totalHospitals = await User.countDocuments({ role: 'hospital' });
+
+  const fraudAlertsCount = await MedicalCase.countDocuments({ "flags.0": { $exists: true } });
+
+  const totalDonationsResult = await Donation.aggregate([
+    { $match: { status: 'completed' } },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+  const totalDonations = totalDonationsResult[0]?.total || 0;
+
+  // Recent Fraud Signals
+  const casesWithFlags = await MedicalCase.find({ "flags.0": { $exists: true } })
+    .sort('-updatedAt')
+    .limit(5)
+    .select('title flags status patientName');
+
+  const fraudSignals = casesWithFlags.map(c => {
+    let title = "Suspicious Activity";
+    let desc = `Case #${c._id.toString().slice(-4)} for ${c.patientName}`;
+    let severity = "Warning";
+
+    if (c.flags.includes('duplicate_document')) {
+      title = "Reused Document Linkage";
+      desc = `Potential duplicate document found in case #${c._id.toString().slice(-4)}`;
+      severity = "Critical";
+    } else if (c.flags.includes('duplicate_phone')) {
+      title = "Phone Number Cluster";
+      desc = `Multiple cases linked to phone used in case #${c._id.toString().slice(-4)}`;
+    } else if (c.flags.includes('suspicious_amount')) {
+      title = "Unusual Funding Request";
+      desc = `Amount requirement deviates from standard cost in case #${c._id.toString().slice(-4)}`;
+    }
+
+    return {
+      title,
+      desc,
+      severity,
+      signal: c.flags[0].toUpperCase(),
+      caseId: c._id
+    };
+  });
+
+  // Escrow Activity (Mocking detailed financial status based on hospital load)
+  const hospitalsWithLoad = await Hospital.find({ activeCases: { $gt: 0 } })
+    .limit(5)
+    .select('hospitalName activeCases');
+
+  const escrowActivity = hospitalsWithLoad.map(h => ({
+    hospital: h.hospitalName,
+    amount: `₹${(h.activeCases * 50000).toLocaleString()}`,
+    status: h.activeCases > 3 ? 'Held' : 'Releasing'
+  }));
+
+  res.status(200).json({
+    success: true,
+    stats: {
+      pendingHospitals,
+      approvedHospitals,
+      rejectedHospitals,
+      blacklistedHospitals,
+      totalHospitals,
+      fraudAlerts: fraudAlertsCount,
+      totalDonations
+    },
+    fraudSignals,
+    escrowActivity
   });
 
 });

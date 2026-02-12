@@ -352,3 +352,18 @@ exports.googleLogin = async (req, res) => {
     res.status(401).json({ message: "Google authentication failed", detail: err.message });
   }
 };
+
+exports.getMe = asyncHandler(async (req, res, next) => {
+  const user = await User.findById(req.user.id).select('-password');
+  if (!user) return next(new ErrorHandler('User not found', 404));
+
+  res.status(200).json({
+    success: true,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    }
+  });
+});

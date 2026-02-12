@@ -1,35 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, Users, AlertTriangle, BarChart3, Building2, CheckCircle, Package, Receipt, Filter, ArrowUpRight, Search } from 'lucide-react';
+import { ShieldCheck, Users, AlertTriangle, BarChart3, Building2, CheckCircle, Package, Receipt, Filter, ArrowUpRight, Search, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const AdminDashboard = () => {
     const { api } = useAuth();
     const [transactions, setTransactions] = useState([]);
+    const [statsData, setStatsData] = useState(null);
+    const [fraudSignals, setFraudSignals] = useState([]);
+    const [escrowActivity, setEscrowActivity] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all'); // all, individual, ngo
 
     useEffect(() => {
-        const fetchTransactions = async () => {
+        const fetchDashboardData = async () => {
             setLoading(true);
             try {
+                // Fetch Stats
+                const statsRes = await api.get('/admin/stats');
+                setStatsData(statsRes.data.stats);
+                setFraudSignals(statsRes.data.fraudSignals);
+                setEscrowActivity(statsRes.data.escrowActivity);
+
+                // Fetch Transactions
                 const url = filter === 'all' ? '/admin/transactions' : `/admin/transactions?supporterType=${filter}`;
-                const res = await api.get(url);
-                setTransactions(res.data.transactions);
+                const transRes = await api.get(url);
+                setTransactions(transRes.data.transactions);
             } catch (err) {
-                console.error('Error fetching transactions:', err);
+                console.error('Error fetching dashboard data:', err);
             } finally {
                 setLoading(false);
             }
         };
-        fetchTransactions();
+        fetchDashboardData();
     }, [filter, api]);
 
     const stats = [
-        { label: 'Active Hospitals', value: '24', icon: Building2, color: 'text-indigo-600' },
-        { label: 'Total Verified', value: '142', icon: CheckCircle, color: 'text-emerald-600' },
-        { label: 'Fraud Alerts', value: '3', icon: AlertTriangle, color: 'text-rose-600' },
-        { label: 'Total Donations', value: `₹${transactions.reduce((acc, t) => acc + t.amount, 0).toLocaleString()}`, icon: BarChart3, color: 'text-blue-600' },
+        { label: 'Pending Requests', value: statsData?.pendingHospitals || '0', icon: Clock, color: 'text-amber-600' },
+        { label: 'Total Verified', value: statsData?.approvedHospitals || '0', icon: CheckCircle, color: 'text-emerald-600' },
+        { label: 'Fraud Alerts', value: statsData?.fraudAlerts || '0', icon: AlertTriangle, color: 'text-rose-600' },
+        { label: 'Total Donations', value: `₹${(statsData?.totalDonations || 0).toLocaleString()}`, icon: BarChart3, color: 'text-blue-600' },
     ];
 
     return (
@@ -114,25 +124,25 @@ const AdminDashboard = () => {
                                                         <td className="py-5 px-2">
                                                             <div className="flex items-center space-x-3">
                                                                 <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-black text-indigo-600 uppercase">
-                                                                    {t.supporterId?.name?.charAt(0) || '?'}
+                                                                    {t.supporterUser?.name?.charAt(0) || '?'}
                                                                 </div>
                                                                 <div>
-                                                                    <div className="text-sm font-black text-slate-900">{t.supporterId?.name || 'Anonymous'}</div>
-                                                                    <div className="text-xs font-bold text-slate-400">{t.supporterId?.email}</div>
+                                                                    <div className="text-sm font-black text-slate-900">{t.supporterUser?.name || 'Anonymous'}</div>
+                                                                    <div className="text-xs font-bold text-slate-400">{t.supporterUser?.email}</div>
                                                                 </div>
                                                             </div>
                                                         </td>
                                                         <td className="py-5 px-2">
-                                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${t.supporterId?.supporterType === 'ngo' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+                                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${t.supporterUser?.supporterType === 'ngo' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
                                                                 }`}>
-                                                                {t.supporterId?.supporterType || 'INDIVIDUAL'}
+                                                                {t.supporterUser?.supporterType || 'INDIVIDUAL'}
                                                             </span>
                                                         </td>
                                                         <td className="py-5 px-2 text-right">
                                                             <div className="text-sm font-black text-indigo-600 tracking-tight">₹{t.amount.toLocaleString()}</div>
                                                         </td>
                                                         <td className="py-5 px-2">
-                                                            <div className="text-sm font-bold text-slate-700 truncate max-w-[150px]">{t.caseId?.title || 'Unknown Case'}</div>
+                                                            <div className="text-sm font-bold text-slate-700 truncate max-w-[150px]">{t.medicalCase?.title || 'Unknown Case'}</div>
                                                         </td>
                                                         <td className="py-5 px-2">
                                                             <div className="text-xs font-bold text-slate-400">{new Date(t.createdAt).toLocaleDateString()}</div>
@@ -160,23 +170,26 @@ const AdminDashboard = () => {
                             </h2>
 
                             <div className="space-y-6">
-                                {[
-                                    { title: 'Reused Document Linkage', desc: 'Case #241 same X-Ray as Case #182', severity: 'Critical', signal: 'DOC_DUP' },
-                                    { title: 'Suspicious IP Cluster', desc: '5 patients registered from same IP in 2h', severity: 'Warning', signal: 'IP_GEO' },
-                                ].map((alert, i) => (
-                                    <div key={i} className="p-6 rounded-[24px] bg-rose-50 border border-rose-100 flex items-start justify-between">
-                                        <div>
-                                            <div className="flex items-center space-x-3 mb-2">
-                                                <span className="text-sm font-black text-rose-600 uppercase tracking-widest">{alert.severity}</span>
-                                                <span className="w-1 h-1 bg-rose-300 rounded-full" />
-                                                <span className="text-xs font-bold text-rose-400 italic">#{alert.signal}</span>
+                                {fraudSignals.length > 0 ? (
+                                    fraudSignals.map((alert, i) => (
+                                        <div key={i} className="p-6 rounded-[24px] bg-rose-50 border border-rose-100 flex items-start justify-between">
+                                            <div>
+                                                <div className="flex items-center space-x-3 mb-2">
+                                                    <span className="text-sm font-black text-rose-600 uppercase tracking-widest">{alert.severity}</span>
+                                                    <span className="w-1 h-1 bg-rose-300 rounded-full" />
+                                                    <span className="text-xs font-bold text-rose-400 italic">#{alert.signal}</span>
+                                                </div>
+                                                <h4 className="text-lg font-bold text-slate-900 mb-1">{alert.title}</h4>
+                                                <p className="text-sm text-slate-600 font-medium">{alert.desc}</p>
                                             </div>
-                                            <h4 className="text-lg font-bold text-slate-900 mb-1">{alert.title}</h4>
-                                            <p className="text-sm text-slate-600 font-medium">{alert.desc}</p>
+                                            <button className="px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-rose-200 hover:scale-105 transition-all">Review Case</button>
                                         </div>
-                                        <button className="px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-rose-200 hover:scale-105 transition-all">Freeze Case</button>
+                                    ))
+                                ) : (
+                                    <div className="p-10 text-center font-bold text-slate-400 italic bg-slate-50 rounded-[24px]">
+                                        No active fraud signals detected. System health optimal.
                                     </div>
-                                ))}
+                                )}
                             </div>
                         </div>
                     </div>
@@ -188,19 +201,19 @@ const AdminDashboard = () => {
                             <Package className="w-12 h-12 text-indigo-400 mb-6 opacity-30 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500" />
                             <h3 className="text-xl font-bold mb-4 tracking-tight">Escrow Activity</h3>
                             <div className="space-y-6">
-                                {[
-                                    { hospital: 'Fortis Healthcare', amount: '₹14.2L', status: 'Releasing' },
-                                    { hospital: 'Manipal Hospital', amount: '₹5.0L', status: 'Held' },
-                                    { hospital: 'Max Super Speciality', amount: '₹8.4L', status: 'Releasing' },
-                                ].map((esc, i) => (
-                                    <div key={i} className="flex justify-between items-center pb-4 border-b border-white/10 last:border-0 last:pb-0">
-                                        <div>
-                                            <div className="text-sm font-bold text-slate-100">{esc.hospital}</div>
-                                            <div className="text-xs font-bold text-indigo-400 uppercase tracking-widest">{esc.status}</div>
+                                {escrowActivity.length > 0 ? (
+                                    escrowActivity.map((esc, i) => (
+                                        <div key={i} className="flex justify-between items-center pb-4 border-b border-white/10 last:border-0 last:pb-0">
+                                            <div>
+                                                <div className="text-sm font-bold text-slate-100">{esc.hospital}</div>
+                                                <div className="text-xs font-bold text-indigo-400 uppercase tracking-widest">{esc.status}</div>
+                                            </div>
+                                            <div className="text-lg font-black">{esc.amount}</div>
                                         </div>
-                                        <div className="text-lg font-black">{esc.amount}</div>
-                                    </div>
-                                ))}
+                                    ))
+                                ) : (
+                                    <div className="text-sm font-bold text-slate-400 italic">No active escrow transfers.</div>
+                                )}
                             </div>
                             <button className="w-full mt-10 py-4 rounded-2xl bg-white/10 border border-white/20 font-bold hover:bg-white/20 transition-all uppercase tracking-widest text-xs">
                                 View Analytics

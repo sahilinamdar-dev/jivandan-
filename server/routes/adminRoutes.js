@@ -6,7 +6,10 @@ const {
   updateHospitalStatus,
   getAllHospitals,
   getAllTransactions,
-  getApprovedHospitals
+  getApprovedHospitals,
+  getRejectedHospitals,
+  getBlacklistedHospitals,
+  getDashboardStats
 } = require('../controllers/adminController');
 
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -33,6 +36,9 @@ router.use(authorize('admin'));
 // GET /api/admin/hospitals
 router.get('/hospitals', getAllHospitals);
 
+// GET /api/admin/stats
+router.get('/stats', getDashboardStats);
+
 // GET /api/admin/hospitals/pending
 router.get('/hospitals/pending', getPendingHospitals);
 
@@ -44,5 +50,11 @@ router.put(
 
 // GET /api/admin/transactions
 router.get('/transactions', getAllTransactions);
+
+// GET /api/admin/hospitals/rejected
+router.get('/hospitals/rejected', getRejectedHospitals);
+
+// GET /api/admin/hospitals/blacklisted
+router.get('/hospitals/blacklisted', getBlacklistedHospitals);
 
 module.exports = router;
