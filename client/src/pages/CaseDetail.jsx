@@ -41,9 +41,16 @@ const CaseDetail = () => {
 
         setDonating(true);
         try {
+            const donationAmount = parseInt(amount);
+            if (isNaN(donationAmount) || donationAmount <= 0) {
+                alert('Please enter a valid amount');
+                setDonating(false);
+                return;
+            }
+
             // 1. Create order on backend
             const { data: order } = await api.post('/donations/order', {
-                amount: parseInt(amount),
+                amount: donationAmount,
                 caseId: id
             });
 

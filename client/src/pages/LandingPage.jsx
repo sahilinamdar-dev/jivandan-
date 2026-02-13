@@ -4,9 +4,24 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Heart, ShieldCheck, Users, Activity, Clock, CheckCircle, Sparkles, TrendingUp, Building2, FileText } from 'lucide-react';
 import SuccessStorySlider from '../components/SuccessStorySlider';
 import TrendingCases from '../components/TrendingCases';
-import { trendingCases, successStories, trustStats, howItWorksSteps } from '../data/dummyData';
+import { useAuth } from '../context/AuthContext';
 
 const LandingPage = () => {
+    const { api } = useAuth();
+    const [trendingCasesData, setTrendingCasesData] = React.useState([]);
+
+    React.useEffect(() => {
+        const fetchTrending = async () => {
+            try {
+                const res = await api.get('/cases?status=live&limit=3');
+                setTrendingCasesData(res.data);
+            } catch (err) {
+                console.error("Failed to fetch trending cases:", err);
+            }
+        };
+        fetchTrending();
+    }, [api]);
+
     return (
         <main className="overflow-hidden">
             {/* Emotional Hero Section with Family Imagery */}

@@ -99,8 +99,8 @@ const medicalCaseSchema = new mongoose.Schema({
 
   verificationRemarks: String,
   requiredSpeciality: {
-    type: String,
-    required: true // "cancer", "kidney", "liver"
+    type: String
+    // required: true -- commented out to support legacy data during updates
   },
 
   timeline: [{

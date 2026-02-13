@@ -12,8 +12,11 @@ const {
   verifyEmail,
   forgotPassword,
   verifyOTP,
-  resetPassword
+  resetPassword,
+  getMe
 } = require('../controllers/authController');
+
+const { protect } = require('../middleware/authMiddleware');
 
 // ✅ Registration
 router.post('/register/patient', registerPatient);
@@ -25,6 +28,7 @@ router.post('/login', login);
 router.post('/google', googleLogin);
 router.post('/refresh-token', refreshToken);
 router.post('/logout', logout);
+router.get('/me', protect, getMe);
 
 // ✅ Email & Password
 router.get('/verify-email/:token', verifyEmail);

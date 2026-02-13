@@ -37,7 +37,7 @@ const SubmitCase = () => {
         currentCondition: 'stable',
         recommendedTreatment: '',
         expectedDuration: '',
-        hospitalId: '',
+        requiredSpeciality: '',
 
         // Step 3: Documents
         documents: [], // { name, url, type }
@@ -62,18 +62,10 @@ const SubmitCase = () => {
         }
     });
 
+    // Hospital fetching removed as per auto-assignment requirement
     useEffect(() => {
-        const fetchHospitals = async () => {
-            try {
-                const res = await api.get('/admin/hospitals/approved');
-                setHospitals(res.data.hospitals || []);
-            } catch (err) {
-                console.error("Failed to fetch hospitals");
-                setHospitals([]);
-            }
-        };
-        fetchHospitals();
-    }, [api]);
+        // No longer fetching hospitals for manual selection
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -172,6 +164,51 @@ const SubmitCase = () => {
                                     <div className="p-4 rounded-2xl bg-blue-50 text-blue-600">
                                         <Info className="w-6 h-6" />
                                     </div>
+                                    {import.meta.env.DEV && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setFormData({
+                                                    ...formData,
+                                                    patientName: "Sahil Inamdar",
+                                                    age: "24",
+                                                    gender: "male",
+                                                    phone: "9876543210",
+                                                    email: "sahil@example.com",
+                                                    city: "Mumbai",
+                                                    state: "Maharashtra",
+                                                    relationshipToPatient: "self",
+                                                    title: "Urgent Kidney Transplant Needed",
+                                                    disease: "Chronic Kidney Disease",
+                                                    description: "Patient requires urgent kidney transplant due to end-stage renal failure. Treatment includes pre-op tests and surgery.",
+                                                    diagnosisDate: "2024-01-01",
+                                                    currentCondition: "serious",
+                                                    recommendedTreatment: "Kidney Transplant & Immunosuppressants",
+                                                    expectedDuration: "12 months",
+                                                    requiredSpeciality: "kidney",
+                                                    amountRequired: "800000",
+                                                    amountAlreadyArranged: "100000",
+                                                    costBreakdown: {
+                                                        surgery: 500000,
+                                                        medicines: 100000,
+                                                        hospitalStay: 100000,
+                                                        diagnostics: 50000,
+                                                        other: 50000
+                                                    },
+                                                    consents: {
+                                                        sharePublicly: true,
+                                                        hospitalVerification: true,
+                                                        policyAgreement: true,
+                                                        truthfulnessDeclaration: true
+                                                    }
+                                                });
+                                            }}
+                                            className="px-4 py-2 rounded-xl bg-blue-50 border border-blue-100 text-[10px] font-black uppercase tracking-widest text-blue-600 hover:bg-blue-100 transition-all flex items-center gap-2"
+                                        >
+                                            <Activity className="w-3 h-3" />
+                                            Quick Fill (Dev)
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div className="p-6 rounded-2xl bg-indigo-50/50 border border-indigo-100 flex items-center gap-4 text-indigo-700">
@@ -400,17 +437,20 @@ const SubmitCase = () => {
                                     </div>
 
                                     <div className="space-y-2 md:col-span-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Select Hospital for Verification</label>
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Required Speciality</label>
                                         <select
-                                            name="hospitalId"
-                                            value={formData.hospitalId}
+                                            name="requiredSpeciality"
+                                            value={formData.requiredSpeciality}
                                             onChange={handleChange}
                                             className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none text-slate-900 font-medium appearance-none"
                                         >
-                                            <option value="">Choose a registered hospital</option>
-                                            {hospitals.map(h => (
-                                                <option key={h._id} value={h._id}>{h.name} - {h.city}</option>
-                                            ))}
+                                            <option value="">Select Speciality</option>
+                                            <option value="cancer">Oncology (Cancer)</option>
+                                            <option value="kidney">Nephrology (Kidney)</option>
+                                            <option value="liver">Gastroenterology (Liver)</option>
+                                            <option value="heart">Cardiology (Heart)</option>
+                                            <option value="general">General Surgery</option>
+                                            <option value="emergency">Emergency / Critical Care</option>
                                         </select>
                                     </div>
                                 </div>
@@ -425,7 +465,7 @@ const SubmitCase = () => {
                                     </button>
                                     <button
                                         onClick={nextStep}
-                                        disabled={!formData.hospitalId || !formData.disease || !formData.title || !formData.diagnosisDate || !formData.recommendedTreatment || !formData.expectedDuration}
+                                        disabled={!formData.requiredSpeciality || !formData.disease || !formData.title || !formData.diagnosisDate || !formData.recommendedTreatment || !formData.expectedDuration}
                                         className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-200 hover:scale-[1.05] transition-all flex items-center gap-3 group disabled:opacity-50 disabled:hover:scale-100"
                                     >
                                         Continue to Documents

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ShieldCheck, Heart, Search, TrendingUp, 
-  ArrowUpRight, Filter, Zap, X, Loader2, MapPin 
+import {
+    ShieldCheck, Heart, Search, TrendingUp,
+    ArrowUpRight, Filter, Zap, X, Loader2, MapPin
 } from 'lucide-react';
 
 const DonorDashboard = () => {
+    const { api } = useAuth();
     const [cases, setCases] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedCase, setSelectedCase] = useState(null);
@@ -18,8 +19,8 @@ const DonorDashboard = () => {
         const fetchLiveCases = async () => {
             try {
                 // Adjust this URL to your actual backend endpoint
-                const res = await axios.get('http://localhost:5000/api/cases?status=live');
-                
+                const res = await api.get('/cases?status=live');
+
                 // Safety check to prevent .map() errors
                 if (res.data && Array.isArray(res.data)) {
                     setCases(res.data);
@@ -45,7 +46,7 @@ const DonorDashboard = () => {
 
         const script = document.createElement("script");
         script.src = "https://checkout.razorpay.com/v1/checkout.js";
-        
+
         script.onload = async () => {
             try {
                 // Optional: Create order on backend first for security
@@ -56,11 +57,11 @@ const DonorDashboard = () => {
                     amount: Number(donationAmount) * 100, // Paise
                     currency: "INR",
                     name: "LifeCare Foundation",
-                    description: `Donation for ${selectedCase.patientName}`,
+                    description: `Donation for ${selectedCase?.patientName || 'Medical Case'}`,
                     handler: async function (response) {
                         // After success, update the 'amountCollected' in DB
                         try {
-                            await axios.patch(`http://localhost:5000/api/cases/${selectedCase._id}/donate`, {
+                            await api.patch(`/cases/${selectedCase?._id}/donate`, {
                                 paymentId: response.razorpay_payment_id,
                                 amount: Number(donationAmount)
                             });
@@ -88,7 +89,7 @@ const DonorDashboard = () => {
     return (
         <div className="min-h-screen pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-slate-50">
             <div className="max-w-7xl mx-auto">
-                
+
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
                     <div>
@@ -134,9 +135,9 @@ const DonorDashboard = () => {
                                 {cases.map((item) => {
                                     // Progress Calculation based on your Schema
                                     const progress = Math.min((item.amountCollected / item.amountRequired) * 100, 100);
-                                    
+
                                     return (
-                                        <motion.div 
+                                        <motion.div
                                             key={item._id}
                                             whileHover={{ y: -5 }}
                                             className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-xl shadow-slate-200/40 flex flex-col"
@@ -159,16 +160,16 @@ const DonorDashboard = () => {
                                                     <span className="font-bold text-slate-900">₹{item.amountCollected.toLocaleString()}</span>
                                                     <span className="text-slate-400 font-bold tracking-tighter">GOAL: ₹{item.amountRequired.toLocaleString()}</span>
                                                 </div>
-                                                
+
                                                 <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden mb-6">
-                                                    <motion.div 
+                                                    <motion.div
                                                         initial={{ width: 0 }}
                                                         animate={{ width: `${progress}%` }}
                                                         className="h-full bg-indigo-500 rounded-full"
                                                     />
                                                 </div>
 
-                                                <button 
+                                                <button
                                                     onClick={() => setSelectedCase(item)}
                                                     className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-600 transition-all"
                                                 >
@@ -188,32 +189,32 @@ const DonorDashboard = () => {
             <AnimatePresence>
                 {selectedCase && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.9 }} 
-                            animate={{ opacity: 1, scale: 1 }} 
-                            exit={{ opacity: 0, scale: 0.9 }} 
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
                             className="bg-white w-full max-w-md rounded-[32px] p-8 shadow-2xl relative"
                         >
                             <button onClick={() => setSelectedCase(null)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600">
                                 <X className="w-6 h-6" />
                             </button>
-                            
-                            <h2 className="text-2xl font-black text-slate-900 mb-1 leading-tight">Support {selectedCase.patientName}</h2>
+
+                            <h2 className="text-2xl font-black text-slate-900 mb-1 leading-tight">Support {selectedCase?.patientName}</h2>
                             <p className="text-slate-500 text-sm mb-8">Enter the amount you wish to donate.</p>
-                            
+
                             <div className="space-y-4">
                                 <div className="relative">
                                     <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-slate-400 text-xl">₹</span>
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
                                         value={donationAmount}
                                         onChange={(e) => setDonationAmount(e.target.value)}
-                                        placeholder="0.00" 
+                                        placeholder="0.00"
                                         className="w-full pl-12 pr-6 py-5 bg-slate-50 border-2 border-transparent rounded-2xl text-2xl font-black outline-none focus:border-indigo-500 focus:bg-white transition-all"
                                     />
                                 </div>
-                                
-                                <button 
+
+                                <button
                                     onClick={handlePayment}
                                     disabled={!donationAmount || isProcessing}
                                     className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2"

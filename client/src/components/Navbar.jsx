@@ -43,7 +43,7 @@ const Navbar = () => {
                         <Link to="/how-it-works" className="text-slate-600 hover:text-indigo-600 font-medium transition-colors">How it Works</Link>
                         {user ? (
                             <div className="flex items-center space-x-4">
-                                <Link to={`/${user.role}-dashboard`} className="flex items-center space-x-2 px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-50 transition-all">
+                                <Link to={user.role === 'supporter' ? '/supporter-dashboard' : `/${user.role}-dashboard`} className="flex items-center space-x-2 px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-50 transition-all">
                                     <User className="w-4 h-4 text-indigo-600" />
                                     <span className="text-sm font-semibold">{user.name}</span>
                                 </Link>
