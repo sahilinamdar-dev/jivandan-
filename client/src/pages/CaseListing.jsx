@@ -2,8 +2,11 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter, ShieldCheck, Heart, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const CaseCard = ({ medicalCase }) => {
+    const patientPhoto = medicalCase.documents?.find(d => d.type === 'patient_photo')?.url || "https://images.unsplash.com/photo-1516549221184-ef395c07421f?q=80&w=600&auto=format&fit=crop";
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -12,7 +15,7 @@ const CaseCard = ({ medicalCase }) => {
             className="glass-card rounded-3xl overflow-hidden hover:shadow-2xl hover:shadow-indigo-100 transition-all border border-slate-100 group"
         >
             <div className="relative h-48 overflow-hidden bg-slate-200">
-                <img src={medicalCase.image || "https://images.unsplash.com/photo-1516549221184-ef395c07421f?q=80&w=600&auto=format&fit=crop"} alt={medicalCase.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                <img src={patientPhoto} alt={medicalCase.patientName} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center space-x-1.5 shadow-sm">
                     <ShieldCheck className="w-4 h-4 text-emerald-500" />
                     <span className="text-xs font-bold text-slate-800">Hospital Verified</span>
@@ -20,12 +23,12 @@ const CaseCard = ({ medicalCase }) => {
             </div>
             <div className="p-6">
                 <div className="text-sm font-semibold text-indigo-600 mb-2">{medicalCase.disease}</div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3 line-clamp-2">{medicalCase.title}</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-3 line-clamp-2">{medicalCase.patientName}: {medicalCase.title}</h3>
 
                 <div className="mb-6">
                     <div className="flex justify-between text-sm font-semibold mb-2">
-                        <span className="text-slate-500">Raised: ₹{medicalCase.amountCollected}</span>
-                        <span className="text-slate-900">Goal: ₹{medicalCase.amountRequired}</span>
+                        <span className="text-slate-500">Raised: ₹{medicalCase.amountCollected?.toLocaleString()}</span>
+                        <span className="text-slate-900">Goal: ₹{medicalCase.amountRequired?.toLocaleString()}</span>
                     </div>
                     <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
@@ -45,12 +48,30 @@ const CaseCard = ({ medicalCase }) => {
 };
 
 const CaseListing = () => {
-    // Dummy cases for demo
-    const dummyCases = [
-        { _id: '1', title: 'Urgent Heart Surgery for 5-Year-Old Aryan', disease: 'Congenital Heart Disease', amountRequired: 500000, amountCollected: 125000 },
-        { _id: '2', title: 'Support Meera\'s Fight Against Cancer', disease: 'Leukemia', amountRequired: 800000, amountCollected: 450000 },
-        { _id: '3', title: 'Emergency Transplant Required', disease: 'Liver Cirrhosis', amountRequired: 1500000, amountCollected: 200000 },
-    ];
+    const { api } = useAuth();
+    const [cases, setCases] = React.useState([]);
+    const [loading, setLoading] = React.useState(true);
+    const [searchQuery, setSearchQuery] = React.useState('');
+
+    React.useEffect(() => {
+        const fetchCases = async () => {
+            try {
+                const res = await api.get('/cases?status=live');
+                setCases(res.data);
+            } catch (err) {
+                console.error("Failed to fetch cases:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchCases();
+    }, [api]);
+
+    const filteredCases = cases.filter(c =>
+        c.patientName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.disease?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <div className="min-h-screen pt-32 pb-20">
@@ -63,7 +84,13 @@ const CaseListing = () => {
                     <div className="flex items-center space-x-4">
                         <div className="relative">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input type="text" placeholder="Search by disease or patient..." className="pl-12 pr-6 py-3 rounded-2xl bg-white border border-slate-200 focus:border-indigo-500 outline-none w-full md:w-80 shadow-sm" />
+                            <input
+                                type="text"
+                                placeholder="Search by disease or patient..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-12 pr-6 py-3 rounded-2xl bg-white border border-slate-200 focus:border-indigo-500 outline-none w-full md:w-80 shadow-sm"
+                            />
                         </div>
                         <button className="p-3 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50">
                             <Filter className="w-6 h-6" />
@@ -71,11 +98,23 @@ const CaseListing = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {dummyCases.map((c) => (
-                        <CaseCard key={c._id} medicalCase={c} />
-                    ))}
-                </div>
+                {loading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="h-96 bg-slate-100 rounded-3xl animate-pulse" />
+                        ))}
+                    </div>
+                ) : filteredCases.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {filteredCases.map((c) => (
+                            <CaseCard key={c._id} medicalCase={c} />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-widest">
+                        No verified cases found
+                    </div>
+                )}
             </div>
         </div>
     );

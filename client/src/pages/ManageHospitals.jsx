@@ -9,7 +9,7 @@ const ManageHospitals = () => {
     const [hospitals, setHospitals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'all'
+    const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'all' | 'rejected' | 'blacklisted'
     const [searchQuery, setSearchQuery] = useState('');
     const [actionLoading, setActionLoading] = useState(null);
     const [reasonInput, setReasonInput] = useState({ id: null, reason: '', status: '' });
@@ -23,7 +23,11 @@ const ManageHospitals = () => {
     const fetchHospitals = async () => {
         setLoading(true);
         try {
-            const endpoint = activeTab === 'pending' ? '/admin/hospitals/pending' : '/admin/hospitals';
+            let endpoint = '/admin/hospitals';
+            if (activeTab === 'pending') endpoint = '/admin/hospitals/pending';
+            else if (activeTab === 'rejected') endpoint = '/admin/hospitals/rejected';
+            else if (activeTab === 'blacklisted') endpoint = '/admin/hospitals/blacklisted';
+
             const res = await api.get(endpoint);
             setHospitals(res.data.hospitals);
         } catch (err) {
@@ -51,9 +55,11 @@ const ManageHospitals = () => {
     };
 
     const filteredHospitals = hospitals.filter(h =>
-        h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        h.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        h.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        h.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        h.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        h.address?.line1?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        h.address?.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        h.address?.state?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         h.city?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -82,18 +88,30 @@ const ManageHospitals = () => {
                                 className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all font-medium text-slate-900 shadow-sm"
                             />
                         </div>
-                        <div className="flex p-1.5 bg-slate-100 rounded-2xl w-fit">
+                        <div className="flex p-1.5 bg-slate-100 rounded-2xl w-fit overflow-x-auto">
                             <button
                                 onClick={() => setActiveTab('pending')}
-                                className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${activeTab === 'pending' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap ${activeTab === 'pending' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
                             >
                                 Pending
                             </button>
                             <button
                                 onClick={() => setActiveTab('all')}
-                                className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${activeTab === 'all' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap ${activeTab === 'all' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
                             >
                                 All Verified
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('rejected')}
+                                className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap ${activeTab === 'rejected' ? 'bg-white text-red-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                Rejected
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('blacklisted')}
+                                className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap ${activeTab === 'blacklisted' ? 'bg-white text-red-800 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                Blacklisted
                             </button>
                         </div>
                     </div>
@@ -173,7 +191,11 @@ const ManageHospitals = () => {
 
                                         <div className="bg-indigo-50/30 p-4 rounded-2xl border border-indigo-100">
                                             <span className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Full Address</span>
-                                            <span className="text-sm font-medium text-slate-700">{hospital.address || 'N/A'}</span>
+                                            <span className="text-sm font-medium text-slate-700">
+                                                {hospital.address
+                                                    ? `${hospital.address.line1}${hospital.address.line2 ? ', ' + hospital.address.line2 : ''}, ${hospital.address.city}, ${hospital.address.state} - ${hospital.address.pincode}`
+                                                    : 'N/A'}
+                                            </span>
                                         </div>
 
                                         {hospital.statusReason && (

@@ -203,6 +203,7 @@
 const User = require('../models/User');
 const Hospital = require('../models/Hospital');
 const Donation = require('../models/Donation');
+const MedicalCase = require('../models/MedicalCase');
 const { redisClient } = require('../config/redis');
 const ErrorHandler = require('../utils/ErrorHandler');
 const asyncHandler = require('../utils/asyncHandler');
@@ -236,9 +237,31 @@ exports.getAllHospitals = asyncHandler(async (req, res) => {
     userId: { $in: users.map(u => u._id) }
   }).populate('userId', 'name email status');
 
+  // Transform: Flatten userId fields into top-level hospital object
+  const transformedHospitals = hospitals.map(h => ({
+    _id: h._id,
+    name: h.userId?.name || 'N/A',
+    email: h.userId?.email || 'N/A',
+    status: h.userId?.status || 'pending',
+    hospitalName: h.hospitalName,
+    registrationNumber: h.registrationNumber,
+    hospitalType: h.hospitalType,
+    address: h.address,
+    contact: h.contact,
+    facilities: h.facilities,
+    authorizedPerson: h.authorizedPerson,
+    documents: h.documents,
+    activeCases: h.activeCases,
+    maxCapacity: h.maxCapacity,
+    specialities: h.specialities,
+    isActive: h.isActive,
+    createdAt: h.createdAt,
+    updatedAt: h.updatedAt
+  }));
+
   const result = {
-    count: hospitals.length,
-    hospitals
+    count: transformedHospitals.length,
+    hospitals: transformedHospitals
   };
 
   // Cache for 2 minutes
@@ -283,9 +306,31 @@ exports.getPendingHospitals = asyncHandler(async (req, res) => {
     userId: { $in: users.map(u => u._id) }
   }).populate('userId', 'name email status');
 
+  // Transform: Flatten userId fields into top-level hospital object
+  const transformedHospitals = hospitals.map(h => ({
+    _id: h._id,
+    name: h.userId?.name || 'N/A',
+    email: h.userId?.email || 'N/A',
+    status: h.userId?.status || 'pending',
+    hospitalName: h.hospitalName,
+    registrationNumber: h.registrationNumber,
+    hospitalType: h.hospitalType,
+    address: h.address,
+    contact: h.contact,
+    facilities: h.facilities,
+    authorizedPerson: h.authorizedPerson,
+    documents: h.documents,
+    activeCases: h.activeCases,
+    maxCapacity: h.maxCapacity,
+    specialities: h.specialities,
+    isActive: h.isActive,
+    createdAt: h.createdAt,
+    updatedAt: h.updatedAt
+  }));
+
   const result = {
-    count: hospitals.length,
-    hospitals
+    count: transformedHospitals.length,
+    hospitals: transformedHospitals
   };
 
   await redisClient.setEx(cacheKey, 120, JSON.stringify(result));
@@ -333,11 +378,11 @@ exports.updateHospitalStatus = asyncHandler(async (req, res, next) => {
 
   // 🔥 CACHE INVALIDATION (VERY IMPORTANT)
   await redisClient.del("admin:hospitals:all");
-await redisClient.del("admin:hospitals:pending");
-await redisClient.del("admin:hospitals:approved");
-await redisClient.del("admin:hospitals:rejected");
-await redisClient.del("admin:hospitals:blacklisted");
-await redisClient.del("public:hospitals:approved");
+  await redisClient.del("admin:hospitals:pending");
+  await redisClient.del("admin:hospitals:approved");
+  await redisClient.del("admin:hospitals:rejected");
+  await redisClient.del("admin:hospitals:blacklisted");
+  await redisClient.del("public:hospitals:approved");
 
   res.status(200).json({
     success: true,
@@ -404,14 +449,19 @@ exports.getAllTransactions = asyncHandler(async (req, res) => {
 
   const { supporterType } = req.query;
 
+  // 1. Fetch completed donations
+  // 2. Populate donor (for donorType) and supporterUser (for name/email)
+  // 3. Populate medicalCase (for case title)
   let transactions = await Donation.find({ status: 'completed' })
-    .populate('supporterId', 'name email role supporterType')
-    .populate('caseId', 'title')
+    .populate('supporterUser', 'name email role')
+    .populate('donor', 'donorType')
+    .populate('medicalCase', 'title')
     .sort('-createdAt');
 
-  if (supporterType) {
+  // Filter by donorType if provided
+  if (supporterType && supporterType !== 'all') {
     transactions = transactions.filter(
-      t => t.supporterId?.supporterType === supporterType
+      t => t.donor?.donorType === supporterType
     );
   }
 
@@ -453,9 +503,31 @@ exports.getRejectedHospitals = asyncHandler(async (req, res) => {
     userId: { $in: users.map(u => u._id) }
   }).populate('userId', 'name email status');
 
+  // Transform: Flatten userId fields into top-level hospital object
+  const transformedHospitals = hospitals.map(h => ({
+    _id: h._id,
+    name: h.userId?.name || 'N/A',
+    email: h.userId?.email || 'N/A',
+    status: h.userId?.status || 'rejected',
+    hospitalName: h.hospitalName,
+    registrationNumber: h.registrationNumber,
+    hospitalType: h.hospitalType,
+    address: h.address,
+    contact: h.contact,
+    facilities: h.facilities,
+    authorizedPerson: h.authorizedPerson,
+    documents: h.documents,
+    activeCases: h.activeCases,
+    maxCapacity: h.maxCapacity,
+    specialities: h.specialities,
+    isActive: h.isActive,
+    createdAt: h.createdAt,
+    updatedAt: h.updatedAt
+  }));
+
   const result = {
-    count: hospitals.length,
-    hospitals
+    count: transformedHospitals.length,
+    hospitals: transformedHospitals
   };
 
   // Cache for 2 minutes
@@ -498,9 +570,31 @@ exports.getBlacklistedHospitals = asyncHandler(async (req, res) => {
     userId: { $in: users.map(u => u._id) }
   }).populate('userId', 'name email status');
 
+  // Transform: Flatten userId fields into top-level hospital object
+  const transformedHospitals = hospitals.map(h => ({
+    _id: h._id,
+    name: h.userId?.name || 'N/A',
+    email: h.userId?.email || 'N/A',
+    status: h.userId?.status || 'blacklisted',
+    hospitalName: h.hospitalName,
+    registrationNumber: h.registrationNumber,
+    hospitalType: h.hospitalType,
+    address: h.address,
+    contact: h.contact,
+    facilities: h.facilities,
+    authorizedPerson: h.authorizedPerson,
+    documents: h.documents,
+    activeCases: h.activeCases,
+    maxCapacity: h.maxCapacity,
+    specialities: h.specialities,
+    isActive: h.isActive,
+    createdAt: h.createdAt,
+    updatedAt: h.updatedAt
+  }));
+
   const result = {
-    count: hospitals.length,
-    hospitals
+    count: transformedHospitals.length,
+    hospitals: transformedHospitals
   };
 
   // Cache for 2 minutes
@@ -511,4 +605,30 @@ exports.getBlacklistedHospitals = asyncHandler(async (req, res) => {
     ...result
   });
 
+});
+
+exports.getAdminStats = asyncHandler(async (req, res) => {
+  const activeHospitals = await User.countDocuments({ role: 'hospital', status: 'approved' });
+  const pendingHospitals = await User.countDocuments({ role: 'hospital', status: 'pending' });
+  const totalCases = await MedicalCase.countDocuments();
+  const verifiedCases = await MedicalCase.countDocuments({ status: 'live' });
+
+  // Aggregate total donations
+  const totalDonationsArray = await Donation.aggregate([
+    { $match: { status: 'completed' } },
+    { $group: { _id: null, total: { $sum: "$amount" } } }
+  ]);
+  const totalDonations = totalDonationsArray.length > 0 ? totalDonationsArray[0].total : 0;
+
+  res.status(200).json({
+    success: true,
+    stats: {
+      activeHospitals,
+      pendingHospitals,
+      totalCases,
+      verifiedCases,
+      totalDonations,
+      fraudAlerts: 0 // Placeholder
+    }
+  });
 });

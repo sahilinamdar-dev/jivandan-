@@ -68,11 +68,12 @@ const TrendingCases = ({ cases }) => {
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
                 >
                     {cases.map((caseItem, index) => {
-                        const progress = (caseItem.amountRaised / caseItem.amountRequired) * 100;
+                        const progress = (caseItem.amountCollected / caseItem.amountRequired) * 100;
+                        const patientPhoto = caseItem.documents?.find(d => d.type === 'patient_photo')?.url || "https://images.unsplash.com/photo-1516549221184-ef395c07421f?q=80&w=600&auto=format&fit=crop";
 
                         return (
                             <motion.div
-                                key={caseItem.id}
+                                key={caseItem._id}
                                 variants={cardVariants}
                                 whileHover={{ y: -8 }}
                                 className="group relative"
@@ -81,7 +82,7 @@ const TrendingCases = ({ cases }) => {
                                     {/* Image */}
                                     <div className="relative h-56 overflow-hidden">
                                         <img
-                                            src={caseItem.image}
+                                            src={patientPhoto}
                                             alt={caseItem.patientName}
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                         />
@@ -94,14 +95,14 @@ const TrendingCases = ({ cases }) => {
                                         </div>
 
                                         {/* Urgency Badge */}
-                                        <div className={`absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-black border ${getUrgencyColor(caseItem.urgency)}`}>
-                                            {caseItem.urgency}
+                                        <div className={`absolute top-4 right-4 px-3 py-1.5 rounded-full text-xs font-black border ${getUrgencyColor(caseItem.currentCondition === 'critical' ? 'Critical' : 'High')}`}>
+                                            {caseItem.currentCondition?.toUpperCase() || 'HIGH'}
                                         </div>
 
-                                        {/* Days Left */}
+                                        {/* Days Left - Placeholder or calculation if available */}
                                         <div className="absolute bottom-4 left-4 flex items-center space-x-2 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-full">
                                             <Clock className="w-4 h-4 text-indigo-600" />
-                                            <span className="text-xs font-black text-slate-900">{caseItem.daysLeft} Days Left</span>
+                                            <span className="text-xs font-black text-slate-900">Urgent Help</span>
                                         </div>
                                     </div>
 
@@ -114,29 +115,29 @@ const TrendingCases = ({ cases }) => {
                                             {caseItem.disease}
                                         </p>
                                         <p className="text-slate-600 text-sm mb-4 line-clamp-2 flex-grow">
-                                            {caseItem.story}
+                                            {caseItem.description}
                                         </p>
 
                                         {/* Hospital */}
                                         <p className="text-xs text-slate-500 font-medium mb-4">
-                                            📍 {caseItem.hospital}
+                                            📍 {caseItem.city}, {caseItem.state}
                                         </p>
 
                                         {/* Progress Bar */}
                                         <div className="mb-4">
                                             <div className="flex justify-between items-center mb-2">
                                                 <span className="text-sm font-bold text-slate-700">
-                                                    ₹{(caseItem.amountRaised / 1000).toFixed(0)}K raised
+                                                    ₹{caseItem.amountCollected.toLocaleString()} raised
                                                 </span>
                                                 <span className="text-sm font-bold text-slate-500">
-                                                    of ₹{(caseItem.amountRequired / 1000).toFixed(0)}K
+                                                    of ₹{caseItem.amountRequired.toLocaleString()}
                                                 </span>
                                             </div>
                                             <div className="progress-bar h-3">
                                                 <motion.div
                                                     className="progress-fill"
                                                     initial={{ width: 0 }}
-                                                    whileInView={{ width: `${progress}%` }}
+                                                    whileInView={{ width: `${Math.min(progress, 100)}%` }}
                                                     viewport={{ once: true }}
                                                     transition={{ duration: 1, delay: index * 0.2 }}
                                                 />
@@ -147,7 +148,7 @@ const TrendingCases = ({ cases }) => {
                                                 </span>
                                                 <div className="flex items-center space-x-1 text-xs text-slate-500 font-medium">
                                                     <Users className="w-3 h-3" />
-                                                    <span>{caseItem.supporters} supporters</span>
+                                                    <span>Verified Case</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -155,7 +156,7 @@ const TrendingCases = ({ cases }) => {
                                         {/* CTA */}
                                         <div className="flex gap-3 mt-4">
                                             <Link
-                                                to={`/cases/${caseItem.id}`}
+                                                to={`/cases/${caseItem._id}`}
                                                 className="flex-1 py-3 md:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black rounded-xl hover:shadow-xl hover:shadow-blue-500/30 hover:scale-[1.02] transition-all flex items-center justify-center group/btn text-sm md:text-base"
                                             >
                                                 <Heart className="w-4 h-4 mr-2" fill="currentColor" />

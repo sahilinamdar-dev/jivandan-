@@ -18,16 +18,6 @@ const HospitalDashboard = () => {
         setSearchParams({ tab: activeTab }, { replace: true });
     }, [activeTab, setSearchParams]);
 
-    // Dummy "Demo" cases for hospital review
-    const demoPending = [
-        { _id: 'demo-1', patientName: 'Aryan Sharma', disease: 'Congenital Heart Disease', amountRequired: 500000, createdAt: '2023-10-20', isDemo: true, status: 'pending' },
-        { _id: 'demo-4', patientName: 'Suresh Raina', disease: 'Chronic Kidney Disease', amountRequired: 1200000, createdAt: '2023-10-25', isDemo: true, status: 'pending' },
-    ];
-
-    const demoVerified = [
-        { _id: 'demo-v1', patientName: 'Neha Gupta', disease: 'Leukemia Treatment', amountRequired: 800000, createdAt: '2023-10-01', isDemo: true, status: 'hospital_verified' },
-    ];
-
     useEffect(() => {
         const fetchAllCases = async () => {
             setLoading(true);
@@ -37,13 +27,13 @@ const HospitalDashboard = () => {
                     api.get('/cases/hospital/pending?status=hospital_verified'),
                     api.get('/cases/hospital/pending?status=live')
                 ]);
-                setCases([...pendingRes.data, ...demoPending]);
+                setCases(pendingRes.data);
                 // Combine hospital_verified and already live cases for the verified tab
-                setVerifiedCases([...verifiedRes.data, ...liveRes.data, ...demoVerified]);
+                setVerifiedCases([...verifiedRes.data, ...liveRes.data]);
             } catch (err) {
                 console.error("Failed to fetch cases:", err);
-                setCases(demoPending);
-                setVerifiedCases(demoVerified);
+                setCases([]);
+                setVerifiedCases([]);
             } finally {
                 setLoading(false);
             }
