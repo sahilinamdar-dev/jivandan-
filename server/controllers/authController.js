@@ -107,16 +107,20 @@ exports.registerPatient = asyncHandler(async (req, res, next) => {
 
 exports.registerHospital = asyncHandler(async (req, res, next) => {
   const {
-    hospitalName,
+    name, // Frontend sends 'name'
+    hospitalName, // Fallback if name is missing
     email,
     password,
     phone,
     registrationNumber,
     hospitalType,
-    address,
+    address, // Frontend sends address as string
+    city,
+    state,
     contact,
     authorizedPerson,
-    specialities
+    specialities,
+    organizationDetails // Frontend sends some details here
   } = req.body;
 
   const existingUser = await User.findOne({ email });
@@ -129,7 +133,7 @@ exports.registerHospital = asyncHandler(async (req, res, next) => {
 
   // Create User (pending approval)
   const user = await User.create({
-    name: hospitalName,
+    name: name || hospitalName || 'Hospital User',
     email,
     password: hashedPassword,
     phone,
@@ -139,15 +143,33 @@ exports.registerHospital = asyncHandler(async (req, res, next) => {
   });
 
   // Create Hospital profile
+  // Mapping frontend fields to Hospital model
   const hospital = await Hospital.create({
     userId: user._id,
-    hospitalName,
-    registrationNumber,
-    hospitalType,
-    address,
-    contact,
-    authorizedPerson,
-    specialities
+    hospitalName: hospitalName || name || 'Hospital Name',
+    registrationNumber: registrationNumber || organizationDetails?.registrationNumber || `TEMP-${Date.now()}`,
+    hospitalType: req.body.hospitalType || hospitalType || 'private',
+    address: {
+      line1: (typeof address === 'string' ? address : address?.line1) || 'Address Line 1',
+      line2: address?.line2 || '',
+      city: city || address?.city || 'City',
+      state: state || address?.state || 'State',
+      pincode: req.body.pincode || address?.pincode || '000000'
+    },
+    contact: {
+      phone: phone || contact?.phone || '0000000000',
+      email: email || contact?.email || email
+    },
+    authorizedPerson: {
+      name: req.body.authorizedPerson?.name || authorizedPerson?.name || name || 'Authorized Person',
+      designation: req.body.authorizedPerson?.designation || authorizedPerson?.designation || 'Manager',
+      phone: req.body.authorizedPerson?.phone || authorizedPerson?.phone || phone
+    },
+    specialities: typeof req.body.specialities === 'string'
+      ? req.body.specialities.split(',').map(s => s.trim())
+      : (specialities || ['General']),
+    maxCapacity: req.body.maxCapacity || 5,
+    facilities: req.body.facilities || []
   });
 
   res.status(201).json({

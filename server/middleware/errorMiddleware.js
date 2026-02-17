@@ -10,6 +10,12 @@ module.exports = (err, req, res, next) => {
         err = new ErrorHandler(message, 400);
     }
 
+    // Handle Mongoose validation error
+    if (err.name === 'ValidationError') {
+        const message = Object.values(err.errors).map(value => value.message).join(', ');
+        err = new ErrorHandler(message, 400);
+    }
+
     // Handle Wrong JWT error
     if (err.name === "JsonWebTokenError") {
         const message = `JSON Web Token is invalid. Try again`;
