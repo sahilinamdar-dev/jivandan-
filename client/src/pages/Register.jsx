@@ -4,6 +4,8 @@ import { User, Building2, Mail, Lock, UserPlus, ArrowRight, ArrowLeft, Heart, Ey
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+import { medicalSpecialities } from '../data/specialities';
+
 const Register = () => {
     const { register } = useAuth();
     const navigate = useNavigate();
@@ -27,6 +29,14 @@ const Register = () => {
         address: '',
         city: '',
         state: '',
+        pincode: '',
+        hospitalType: 'private',
+        maxCapacity: '5',
+        selectedSpecialities: [],
+        otherSpeciality: '',
+        authPersonName: '',
+        authPersonDesignation: '',
+        authPersonPhone: '',
         website: '',
         description: ''
     });
@@ -38,7 +48,13 @@ const Register = () => {
     ];
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value, type, selectedOptions } = e.target;
+        if (type === 'select-multiple') {
+            const values = Array.from(selectedOptions).map(option => option.value);
+            setFormData({ ...formData, [name]: values });
+        } else {
+            setFormData({ ...formData, [name]: value });
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -47,6 +63,11 @@ const Register = () => {
         setError('');
 
         try {
+            const combinedSpecialities = [
+                ...formData.selectedSpecialities.filter(s => s !== 'Other'),
+                ...(formData.selectedSpecialities.includes('Other') && formData.otherSpeciality ? formData.otherSpeciality.split(',').map(s => s.trim()) : [])
+            ];
+
             const submissionData = {
                 name: formData.name,
                 email: formData.email,
@@ -59,6 +80,15 @@ const Register = () => {
                 address: formData.address,
                 city: formData.city,
                 state: formData.state,
+                pincode: formData.pincode,
+                hospitalType: role === 'hospital' ? formData.hospitalType : null,
+                maxCapacity: role === 'hospital' ? formData.maxCapacity : null,
+                specialities: role === 'hospital' ? combinedSpecialities.join(', ') : null,
+                authorizedPerson: role === 'hospital' ? {
+                    name: formData.authPersonName,
+                    designation: formData.authPersonDesignation,
+                    phone: formData.authPersonPhone
+                } : null,
                 supporterType: role === 'supporter' ? supporterType : null,
                 organizationDetails: (role === 'hospital' || (role === 'supporter' && supporterType === 'ngo')) ? {
                     registrationNumber: formData.registrationNumber,
@@ -188,6 +218,14 @@ const Register = () => {
                                                     address: "123 Healthcare Avenue, Medical District",
                                                     city: "Mumbai",
                                                     state: "Maharashtra",
+                                                    pincode: "400012",
+                                                    hospitalType: ['government', 'private', 'trust'][Math.floor(Math.random() * 3)],
+                                                    maxCapacity: "20",
+                                                    selectedSpecialities: ["Cardiology", "Emergency Medicine"],
+                                                    otherSpeciality: "",
+                                                    authPersonName: selectedName.split(' ')[0] + " Admin",
+                                                    authPersonDesignation: "Medical Director",
+                                                    authPersonPhone: "9876543210",
                                                     website: (role === 'hospital' || (role === 'supporter' && supporterType === 'ngo')) ? `https://www.${selectedName.toLowerCase().replace(/ /g, '')}.org` : '',
                                                     description: role === 'hospital' ? "A leading multi-specialty hospital dedicated to providing accessible healthcare at the highest standards." : "Non-profit organization focused on providing life-saving medical assistance to underprivileged communities.",
                                                     gender: role === 'patient' ? ['male', 'female', 'other'][Math.floor(Math.random() * 3)] : '',
@@ -376,6 +414,126 @@ const Register = () => {
                                                         placeholder="State"
                                                     />
                                                 </div>
+
+                                                <div className="relative">
+                                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                                    <input
+                                                        type="text"
+                                                        name="pincode"
+                                                        required
+                                                        value={formData.pincode}
+                                                        onChange={handleChange}
+                                                        className="block w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border-2 border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-slate-900 placeholder:text-slate-400"
+                                                        placeholder="Pincode"
+                                                    />
+                                                </div>
+
+                                                {/* Hospital Type & Capacity */}
+                                                {role === 'hospital' && (
+                                                    <>
+                                                        <div className="relative">
+                                                            <select
+                                                                name="hospitalType"
+                                                                required
+                                                                value={formData.hospitalType}
+                                                                onChange={handleChange}
+                                                                className="block w-full px-4 py-4 rounded-2xl bg-slate-50 border-2 border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-slate-900 appearance-none"
+                                                            >
+                                                                <option value="private">Private Hospital</option>
+                                                                <option value="government">Government Hospital</option>
+                                                                <option value="trust">Charitable Trust</option>
+                                                            </select>
+                                                        </div>
+
+                                                        <div className="relative">
+                                                            <Activity className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                                            <input
+                                                                type="number"
+                                                                name="maxCapacity"
+                                                                required
+                                                                min="1"
+                                                                value={formData.maxCapacity}
+                                                                onChange={handleChange}
+                                                                className="block w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border-2 border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-slate-900 placeholder:text-slate-400"
+                                                                placeholder="Max Patient Capacity"
+                                                            />
+                                                        </div>
+
+                                                        <div className="relative md:col-span-2">
+                                                            <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 pl-1">Medical Specialities (Hold Ctrl to select multiple)</div>
+                                                            <select
+                                                                name="selectedSpecialities"
+                                                                multiple
+                                                                required
+                                                                value={formData.selectedSpecialities}
+                                                                onChange={handleChange}
+                                                                className="block w-full px-4 py-4 rounded-2xl bg-slate-50 border-2 border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-slate-900 min-h-[160px]"
+                                                            >
+                                                                {medicalSpecialities.map(spec => (
+                                                                    <option key={spec} value={spec} className="py-2 px-2 hover:bg-blue-50 rounded-lg">{spec}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+
+                                                        {formData.selectedSpecialities.includes('Other') && (
+                                                            <div className="relative md:col-span-2">
+                                                                <Activity className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                                                <input
+                                                                    type="text"
+                                                                    name="otherSpeciality"
+                                                                    required
+                                                                    value={formData.otherSpeciality}
+                                                                    onChange={handleChange}
+                                                                    className="block w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border-2 border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-slate-900 placeholder:text-slate-400"
+                                                                    placeholder="Type other specialities (comma separated)..."
+                                                                />
+                                                            </div>
+                                                        )}
+
+                                                        {/* Authorized Person Details */}
+                                                        <div className="md:col-span-2 mt-4">
+                                                            <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">Authorized Person Details</h4>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div className="relative">
+                                                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                                                    <input
+                                                                        type="text"
+                                                                        name="authPersonName"
+                                                                        required
+                                                                        value={formData.authPersonName}
+                                                                        onChange={handleChange}
+                                                                        className="block w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border-2 border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-slate-900 placeholder:text-slate-400"
+                                                                        placeholder="Full Name"
+                                                                    />
+                                                                </div>
+                                                                <div className="relative">
+                                                                    <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                                                    <input
+                                                                        type="text"
+                                                                        name="authPersonDesignation"
+                                                                        required
+                                                                        value={formData.authPersonDesignation}
+                                                                        onChange={handleChange}
+                                                                        className="block w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border-2 border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-slate-900 placeholder:text-slate-400"
+                                                                        placeholder="Designation"
+                                                                    />
+                                                                </div>
+                                                                <div className="relative md:col-span-2">
+                                                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                                                    <input
+                                                                        type="tel"
+                                                                        name="authPersonPhone"
+                                                                        required
+                                                                        value={formData.authPersonPhone}
+                                                                        onChange={handleChange}
+                                                                        className="block w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border-2 border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-slate-900 placeholder:text-slate-400"
+                                                                        placeholder="Contact Number"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
 
                                                 {/* Org Only */}
                                                 {(role === 'hospital' || (role === 'supporter' && supporterType === 'ngo')) && (

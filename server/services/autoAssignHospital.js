@@ -10,10 +10,11 @@ const autoAssignHospital = async (caseId) => {
   const specialityNeeded = medicalCase.requiredSpeciality;
 
   // 2️⃣ Find hospitals by speciality + capacity
+  // Using $expr to compare activeCases with maxCapacity dynamically
   const hospitals = await Hospital.find({
     isActive: true,
     specialities: specialityNeeded,
-    activeCases: { $lt: 5 } // or use maxCapacity
+    $expr: { $lt: ["$activeCases", { $ifNull: ["$maxCapacity", 5] }] }
   })
     .populate({
       path: 'userId',

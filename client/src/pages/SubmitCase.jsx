@@ -9,6 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { medicalSpecialities, commonDiseases } from '../data/specialities';
 
 const SubmitCase = () => {
     const navigate = useNavigate();
@@ -32,6 +33,7 @@ const SubmitCase = () => {
         // Step 2: Medical
         title: '',
         disease: '',
+        otherDisease: '',
         description: '',
         diagnosisDate: '',
         currentCondition: 'stable',
@@ -93,7 +95,11 @@ const SubmitCase = () => {
     const handleSubmit = async () => {
         setLoading(true);
         try {
-            await api.post('/cases', formData);
+            const submissionData = {
+                ...formData,
+                disease: formData.disease === 'Other' ? formData.otherDisease : formData.disease
+            };
+            await api.post('/cases', submissionData);
             setStep(6); // Success Step
         } catch (err) {
             console.error("Submission error details:", err.response?.data);
@@ -180,12 +186,13 @@ const SubmitCase = () => {
                                                     relationshipToPatient: "self",
                                                     title: "Urgent Kidney Transplant Needed",
                                                     disease: "Chronic Kidney Disease",
+                                                    otherDisease: "",
                                                     description: "Patient requires urgent kidney transplant due to end-stage renal failure. Treatment includes pre-op tests and surgery.",
                                                     diagnosisDate: "2024-01-01",
                                                     currentCondition: "serious",
                                                     recommendedTreatment: "Kidney Transplant & Immunosuppressants",
                                                     expectedDuration: "12 months",
-                                                    requiredSpeciality: "kidney",
+                                                    requiredSpeciality: "Nephrology",
                                                     amountRequired: "800000",
                                                     amountAlreadyArranged: "100000",
                                                     costBreakdown: {
@@ -357,14 +364,37 @@ const SubmitCase = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2 md:col-span-2">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Disease / Condition</label>
-                                        <input
-                                            name="disease"
-                                            value={formData.disease}
-                                            onChange={handleChange}
-                                            className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none text-slate-900 font-medium"
-                                            placeholder="e.g. Critical Heart Surgery required"
-                                        />
+                                        <div className="relative">
+                                            <HeartPulse className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                                            <select
+                                                name="disease"
+                                                value={formData.disease}
+                                                onChange={handleChange}
+                                                className="w-full pl-12 pr-10 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none text-slate-900 font-medium appearance-none"
+                                            >
+                                                <option value="">Select Disease</option>
+                                                {commonDiseases.map(d => (
+                                                    <option key={d} value={d}>{d}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                <ChevronRight className="w-5 h-5 rotate-90" />
+                                            </div>
+                                        </div>
                                     </div>
+
+                                    {formData.disease === 'Other' && (
+                                        <div className="space-y-2 md:col-span-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Specify Other Disease</label>
+                                            <input
+                                                name="otherDisease"
+                                                value={formData.otherDisease}
+                                                onChange={handleChange}
+                                                className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none text-slate-900 font-medium"
+                                                placeholder="Enter the specific condition"
+                                            />
+                                        </div>
+                                    )}
 
                                     <div className="space-y-2 md:col-span-2">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Short Case Headline</label>
@@ -438,20 +468,24 @@ const SubmitCase = () => {
 
                                     <div className="space-y-2 md:col-span-2">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Required Speciality</label>
-                                        <select
-                                            name="requiredSpeciality"
-                                            value={formData.requiredSpeciality}
-                                            onChange={handleChange}
-                                            className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none text-slate-900 font-medium appearance-none"
-                                        >
-                                            <option value="">Select Speciality</option>
-                                            <option value="cancer">Oncology (Cancer)</option>
-                                            <option value="kidney">Nephrology (Kidney)</option>
-                                            <option value="liver">Gastroenterology (Liver)</option>
-                                            <option value="heart">Cardiology (Heart)</option>
-                                            <option value="general">General Surgery</option>
-                                            <option value="emergency">Emergency / Critical Care</option>
-                                        </select>
+                                        <div className="relative">
+                                            <Activity className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                                            <select
+                                                name="requiredSpeciality"
+                                                value={formData.requiredSpeciality}
+                                                onChange={handleChange}
+                                                className="w-full pl-12 pr-10 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white transition-all outline-none text-slate-900 font-medium appearance-none"
+                                            >
+                                                <option value="">Select Speciality</option>
+                                                {medicalSpecialities.filter(s => s !== 'Other').map(spec => (
+                                                    <option key={spec} value={spec}>{spec}</option>
+                                                ))}
+                                                <option value="Other">Other / General</option>
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                <ChevronRight className="w-5 h-5 rotate-90" />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
