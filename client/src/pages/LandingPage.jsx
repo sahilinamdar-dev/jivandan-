@@ -5,6 +5,7 @@ import { ArrowRight, Heart, ShieldCheck, Users, Activity, Clock, CheckCircle, Sp
 import SuccessStorySlider from '../components/SuccessStorySlider';
 import TrendingCases from '../components/TrendingCases';
 import { useAuth } from '../context/AuthContext';
+import { successStories } from '../data/dummyData';
 
 const LandingPage = () => {
     const { api } = useAuth();
@@ -256,7 +257,7 @@ const LandingPage = () => {
             </section>
 
             {/* Trending Cases */}
-            <TrendingCases cases={trendingCases} />
+            <TrendingCases cases={trendingCasesData} />
 
             {/* How It Works - Hospital Verification Process */}
             <section className="py-16 md:py-24 bg-white relative overflow-hidden">
