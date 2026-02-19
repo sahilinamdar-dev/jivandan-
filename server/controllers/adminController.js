@@ -597,14 +597,21 @@ exports.getBlacklistedHospitals = asyncHandler(async (req, res) => {
     hospitals: transformedHospitals
   };
 
-  // Cache for 2 minutes
-  await redisClient.setEx(cacheKey, 120, JSON.stringify(result));
+});
+
+/* ======================================================
+   6️⃣ GET FLAGGED CASES (ADMIN)
+====================================================== */
+
+exports.getFlaggedCases = asyncHandler(async (req, res) => {
+  const cases = await MedicalCase.find({ fraudStatus: 'REVIEW' })
+    .populate('patientId', 'name email phone');
 
   res.status(200).json({
     success: true,
-    ...result
+    count: cases.length,
+    cases
   });
-
 });
 
 exports.getAdminStats = asyncHandler(async (req, res) => {
@@ -620,6 +627,8 @@ exports.getAdminStats = asyncHandler(async (req, res) => {
   ]);
   const totalDonations = totalDonationsArray.length > 0 ? totalDonationsArray[0].total : 0;
 
+  const fraudAlerts = await MedicalCase.countDocuments({ fraudStatus: 'REVIEW' });
+
   res.status(200).json({
     success: true,
     stats: {
@@ -628,7 +637,7 @@ exports.getAdminStats = asyncHandler(async (req, res) => {
       totalCases,
       verifiedCases,
       totalDonations,
-      fraudAlerts: 0 // Placeholder
+      fraudAlerts
     }
   });
 });

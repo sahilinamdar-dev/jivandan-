@@ -16,6 +16,8 @@ import HowItWorks from './pages/HowItWorks';
 import ManageHospitals from './pages/ManageHospitals';
 import SubmitCase from './pages/SubmitCase';
 import HospitalCaseDetail from './pages/HospitalCaseDetail';
+import AdminStats from './pages/AdminStats';
+import FlaggedCases from './pages/FlaggedCases';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -70,6 +72,18 @@ function App() {
                         <Route path="/manage-hospitals" element={
                             <ProtectedRoute allowedRoles={['admin']}>
                                 <ManageHospitals />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/admin/stats" element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                                <AdminStats />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/admin/cases/flagged" element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                                <FlaggedCases />
                             </ProtectedRoute>
                         } />
 

@@ -1,6 +1,7 @@
 
 const MedicalCase = require('../models/MedicalCase');
 const autoAssignHospital = require('../services/autoAssignHospital');
+const { checkFraud } = require('../services/fraudService');
 const { redisClient } = require('../config/redis');
 
 
@@ -22,10 +23,25 @@ exports.createCase = async (req, res) => {
       caseData.flags = ['duplicate_phone'];
     }
 
+    // 🔥 FRAUD DETECTION
+    const fraudResult = await checkFraud(caseData.disease, caseData.amountRequired);
+    console.log('Fraud detection result:', fraudResult);
+
+    if (fraudResult.fraudStatus === 'REVIEW') {
+      caseData.flags = [...(caseData.flags || []), 'suspicious_amount'];
+    }
+
     let medicalCase = await MedicalCase.create({
       ...caseData,
+      ...fraudResult,
+      status: 'CASE_SUBMITTED',
       timeline: [
-        { status: 'pending', remarks: 'Case submitted for hospital verification' }
+        {
+          status: 'CASE_SUBMITTED',
+          remarks: fraudResult.fraudStatus === 'REVIEW'
+            ? 'Case submitted: Flagged for high requested amount review.'
+            : 'Case submitted for hospital verification'
+        }
       ]
     });
 
@@ -129,25 +145,55 @@ exports.getCaseDetails = async (req, res) => {
 
 exports.updateCaseStatus = async (req, res) => {
   try {
-
     const { status, remarks } = req.body;
-
     const medicalCase = await MedicalCase.findById(req.params.id);
 
     if (!medicalCase) {
       return res.status(404).json({ message: 'Case not found' });
     }
 
-    if (
-      req.user.role === 'hospital' &&
-      medicalCase.assignedHospital?.toString() !== req.user.id
-    ) {
+    // Role check
+    if (req.user.role === 'hospital' && medicalCase.assignedHospital?.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Not your assigned case' });
     }
 
-    medicalCase.status = status;
+    const STATUS_ORDER = ['CASE_SUBMITTED', 'CASE_VERIFIED', 'HOSPITAL_ASSIGNED', 'HOSPITAL_APPROVED', 'CASE_LIVE', 'TREATMENT_MILESTONE'];
 
-    medicalCase.timeline.push({ status, remarks });
+    const currentIndex = STATUS_ORDER.indexOf(medicalCase.status);
+    const nextIndex = STATUS_ORDER.indexOf(status);
+
+    // Validate Status Order (except for completed/rejected)
+    if (status !== 'completed' && status !== 'rejected') {
+      if (nextIndex === -1) {
+        return res.status(400).json({ message: 'Invalid status' });
+      }
+
+      // Prevent Duplicate Consecutive (except milestones)
+      if (status === medicalCase.status && status !== 'TREATMENT_MILESTONE') {
+        return res.status(400).json({ message: `Case is already in ${status}` });
+      }
+
+      // Enforce Sequential Order (relaxed for milestone if already at milestone)
+      if (status !== 'TREATMENT_MILESTONE' && nextIndex < currentIndex) {
+        return res.status(400).json({ message: 'Cannot move to a previous status' });
+      }
+    }
+
+    // 🚩 Fraud Protection
+    if (medicalCase.fraudStatus === 'REVIEW' && status === 'CASE_LIVE') {
+      const isVerified = medicalCase.timeline.some(t => t.status === 'CASE_VERIFIED');
+      if (!isVerified) {
+        return res.status(400).json({ message: 'Fraud review required: Case must be CASE_VERIFIED before going LIVE.' });
+      }
+    }
+
+    // Update Status and Timeline
+    medicalCase.status = status;
+    medicalCase.timeline.push({
+      status,
+      remarks: remarks || `Status updated to ${status}`,
+      updatedAt: new Date()
+    });
 
     await medicalCase.save();
 
@@ -160,6 +206,27 @@ exports.updateCaseStatus = async (req, res) => {
       case: medicalCase
     });
 
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+
+/* ======================================================
+   6️⃣ GET PATIENT'S OWN CASE
+====================================================== */
+
+exports.getMyCase = async (req, res) => {
+  try {
+    const medicalCase = await MedicalCase.findOne({ patientId: req.user.id })
+      .populate('hospitalId', 'name');
+
+    if (!medicalCase) {
+      return res.status(404).json({ message: 'No case discovered for this patient' });
+    }
+
+    res.json(medicalCase);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

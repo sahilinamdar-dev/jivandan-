@@ -48,8 +48,10 @@ const Navbar = () => {
                                     <span className="text-sm font-semibold">{user.name}</span>
                                 </Link>
                                 {user.role === 'admin' && (
-                                    <div className="flex items-center space-x-4 border-l border-slate-200 pl-4">
-                                        <Link to="/manage-hospitals" className="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">Manage Hospitals</Link>
+                                    <div className="flex items-center space-x-6 border-l border-slate-200 pl-6">
+                                        <Link to="/admin/stats" className="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">Analytics</Link>
+                                        <Link to="/admin/cases/flagged" className="text-sm font-bold text-slate-600 hover:text-rose-600 transition-colors">Fraud Desk</Link>
+                                        <Link to="/manage-hospitals" className="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">Hospitals</Link>
                                     </div>
                                 )}
                                 <button onClick={logout} className="text-sm font-semibold text-red-500 hover:text-red-600">Logout</button>

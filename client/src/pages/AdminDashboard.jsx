@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, Users, AlertTriangle, BarChart3, Building2, CheckCircle, Package, Receipt, Filter, ArrowUpRight, Search } from 'lucide-react';
+import { ShieldCheck, Users, AlertTriangle, BarChart3, Building2, CheckCircle, Package, Receipt, Filter, ArrowUpRight, Search, LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
+    const navigate = useNavigate();
     const { api } = useAuth();
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -67,8 +69,14 @@ const AdminDashboard = () => {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: i * 0.1 }}
-                            className="glass-card p-6 rounded-[32px] border border-slate-100 flex items-center space-x-4 shadow-xl shadow-slate-200/50"
+                            className="glass-card p-6 rounded-[32px] border border-slate-100 flex items-center space-x-4 shadow-xl shadow-slate-200/50 relative overflow-hidden"
                         >
+                            {stat.label === 'Fraud Alerts' && parseInt(stat.value) > 0 && (
+                                <div className="absolute top-4 right-4 flex h-3 w-3">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                                </div>
+                            )}
                             <div className={`p-4 rounded-2xl bg-white shadow-sm ${stat.color}`}>
                                 <stat.icon className="w-8 h-8" />
                             </div>
@@ -78,6 +86,46 @@ const AdminDashboard = () => {
                             </div>
                         </motion.div>
                     ))}
+                </div>
+
+                {/* 🚀 QUICK NAVIGATION CARDS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    <motion.div
+                        whileHover={{ y: -10 }}
+                        onClick={() => navigate('/admin/stats')}
+                        className="p-8 rounded-[40px] bg-slate-900 text-white shadow-2xl shadow-indigo-200 cursor-pointer group relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-indigo-500/40 transition-colors" />
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="p-4 rounded-2xl bg-white/10 border border-white/20">
+                                <BarChart3 className="w-8 h-8 text-indigo-400" />
+                            </div>
+                            <ArrowUpRight className="w-6 h-6 text-slate-500 group-hover:text-white transition-colors" />
+                        </div>
+                        <h3 className="text-2xl font-black mb-2 leading-tight">Platform Insights</h3>
+                        <p className="text-slate-400 font-medium">Deep dive into funding trends, donor statistics, and hospital performance metrics.</p>
+                    </motion.div>
+
+                    <motion.div
+                        whileHover={{ y: -10 }}
+                        onClick={() => navigate('/admin/cases/flagged')}
+                        className="p-8 rounded-[40px] bg-white border border-slate-100 shadow-xl cursor-pointer group relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-rose-500/10 transition-colors" />
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-100">
+                                <ShieldCheck className="w-8 h-8 text-rose-600" />
+                            </div>
+                            <ArrowUpRight className="w-6 h-6 text-slate-300 group-hover:text-rose-600 transition-colors" />
+                        </div>
+                        <h3 className="text-2xl font-black mb-2 text-slate-900 leading-tight">Fraud Audit Desk</h3>
+                        <p className="text-slate-500 font-medium">Review medical cases flagged for high requested amounts or suspicious patterns.</p>
+                        {parseInt(stats.fraudAlerts) > 0 && (
+                            <div className="mt-4 inline-flex items-center px-4 py-2 rounded-xl bg-rose-100 text-rose-700 text-[10px] font-black uppercase tracking-widest">
+                                {stats.fraudAlerts} Active Alerts Requiring Review
+                            </div>
+                        )}
+                    </motion.div>
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-8">
