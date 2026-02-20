@@ -9,7 +9,10 @@ const {
   getApprovedHospitals,
   getRejectedHospitals,
   getBlacklistedHospitals,
-  getAdminStats
+  getAdminStats,
+  getHospitalById,
+  getVerifiedAdminHospitals,
+  getAdminAnalytics
 } = require('../controllers/adminController');
 
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -39,11 +42,17 @@ router.get('/hospitals', getAllHospitals);
 // GET /api/admin/hospitals/pending
 router.get('/hospitals/pending', getPendingHospitals);
 
+// GET /api/admin/hospitals/verified
+router.get('/hospitals/verified', getVerifiedAdminHospitals);
+
 // GET /api/admin/hospitals/rejected
 router.get('/hospitals/rejected', getRejectedHospitals);
 
 // GET /api/admin/hospitals/blacklisted
 router.get('/hospitals/blacklisted', getBlacklistedHospitals);
+
+// GET /api/admin/hospitals/:hospitalId
+router.get('/hospitals/:hospitalId', getHospitalById);
 
 // PUT /api/admin/hospitals/:hospitalId/status
 router.put(
@@ -53,6 +62,9 @@ router.put(
 
 // GET /api/admin/stats
 router.get('/stats', getAdminStats);
+
+// GET /api/admin/analytics
+router.get('/analytics', getAdminAnalytics);
 
 // GET /api/admin/transactions
 router.get('/transactions', getAllTransactions);

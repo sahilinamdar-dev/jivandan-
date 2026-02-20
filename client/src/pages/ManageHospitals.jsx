@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, CheckCircle, XCircle, Clock, Search, MapPin, FileDigit, FileText, ArrowLeft, ShieldAlert, Ban, Info, AlertTriangle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const ManageHospitals = () => {
     const { api, user, loading: authLoading } = useAuth();
+    const navigate = useNavigate();
     const [hospitals, setHospitals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'all' | 'rejected' | 'blacklisted'
+    const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'verified' | 'all' | 'rejected' | 'blacklisted'
     const [searchQuery, setSearchQuery] = useState('');
     const [actionLoading, setActionLoading] = useState(null);
     const [reasonInput, setReasonInput] = useState({ id: null, reason: '', status: '' });
@@ -25,8 +26,10 @@ const ManageHospitals = () => {
         try {
             let endpoint = '/admin/hospitals';
             if (activeTab === 'pending') endpoint = '/admin/hospitals/pending';
+            else if (activeTab === 'verified') endpoint = '/admin/hospitals/verified';
             else if (activeTab === 'rejected') endpoint = '/admin/hospitals/rejected';
             else if (activeTab === 'blacklisted') endpoint = '/admin/hospitals/blacklisted';
+            else if (activeTab === 'all') endpoint = '/admin/hospitals';
 
             const res = await api.get(endpoint);
             setHospitals(res.data.hospitals);
@@ -41,7 +44,7 @@ const ManageHospitals = () => {
         setActionLoading(id);
         try {
             await api.put(`/admin/hospitals/${id}/status`, { status, reason });
-            if (activeTab === 'pending') {
+            if (activeTab !== 'all') {
                 setHospitals(hospitals.filter(h => h._id !== id));
             } else {
                 setHospitals(hospitals.map(h => h._id === id ? { ...h, status, statusReason: reason } : h));
@@ -55,12 +58,11 @@ const ManageHospitals = () => {
     };
 
     const filteredHospitals = hospitals.filter(h =>
+        h.hospitalName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         h.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         h.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        h.address?.line1?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         h.address?.city?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        h.address?.state?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        h.city?.toLowerCase().includes(searchQuery.toLowerCase())
+        h.address?.state?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -88,31 +90,24 @@ const ManageHospitals = () => {
                                 className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 transition-all font-medium text-slate-900 shadow-sm"
                             />
                         </div>
-                        <div className="flex p-1.5 bg-slate-100 rounded-2xl w-fit overflow-x-auto">
-                            <button
-                                onClick={() => setActiveTab('pending')}
-                                className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap ${activeTab === 'pending' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                                Pending
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('all')}
-                                className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap ${activeTab === 'all' ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                                All Verified
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('rejected')}
-                                className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap ${activeTab === 'rejected' ? 'bg-white text-red-600 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                                Rejected
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('blacklisted')}
-                                className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap ${activeTab === 'blacklisted' ? 'bg-white text-red-800 shadow-md ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                                Blacklisted
-                            </button>
+                        <div className="flex p-1.5 bg-slate-100 rounded-2xl w-fit overflow-x-auto gap-1">
+                            {[
+                                { id: 'pending', label: 'Pending', color: 'indigo' },
+                                { id: 'all', label: 'All', color: 'slate' },
+                                { id: 'verified', label: 'Verified', color: 'emerald' },
+                                { id: 'rejected', label: 'Rejected', color: 'red' },
+                                { id: 'blacklisted', label: 'Blacklisted', color: 'red-900' }
+                            ].map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all whitespace-nowrap ${activeTab === tab.id
+                                        ? 'bg-white shadow-md ring-1 ring-slate-200 text-indigo-600'
+                                        : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>
@@ -153,18 +148,19 @@ const ManageHospitals = () => {
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
                                     transition={{ delay: index * 0.05 }}
-                                    className="glass-card rounded-[2.5rem] p-8 shadow-xl hover:shadow-2xl transition-all border border-white relative overflow-hidden flex flex-col"
+                                    onClick={() => navigate(`/admin/hospital/${hospital._id}`)}
+                                    className="glass-card rounded-[2.5rem] p-8 shadow-xl hover:shadow-2xl transition-all border border-white relative overflow-hidden flex flex-col cursor-pointer group"
                                 >
                                     <div className="flex justify-between items-start mb-6">
                                         <div className="flex items-center space-x-4">
-                                            <div className="p-4 rounded-2xl premium-gradient shadow-lg">
+                                            <div className="p-4 rounded-2xl premium-gradient shadow-lg group-hover:scale-110 transition-transform">
                                                 <Building2 className="text-white w-6 h-6" />
                                             </div>
                                             <div>
-                                                <h3 className="text-xl font-black text-slate-900">{hospital.name}</h3>
+                                                <h3 className="text-xl font-black text-slate-900">{hospital.hospitalName}</h3>
                                                 <p className="text-slate-500 text-sm font-bold flex items-center uppercase tracking-tight">
                                                     <MapPin className="w-3 h-3 mr-1 text-indigo-500" />
-                                                    {hospital.city || 'N/A'}, {hospital.state || 'N/A'}
+                                                    {hospital.address?.city || 'N/A'}, {hospital.address?.state || 'N/A'}
                                                 </p>
                                             </div>
                                         </div>
@@ -185,7 +181,7 @@ const ManageHospitals = () => {
                                             </div>
                                             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
                                                 <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Registration No.</span>
-                                                <span className="text-sm font-bold text-slate-900">{hospital.organizationDetails?.registrationNumber || 'N/A'}</span>
+                                                <span className="text-sm font-bold text-slate-900">{hospital.registrationNumber || 'N/A'}</span>
                                             </div>
                                         </div>
 
@@ -211,7 +207,7 @@ const ManageHospitals = () => {
                                     </div>
 
                                     {/* Action UI */}
-                                    <div className="mt-auto border-t border-slate-100 pt-6">
+                                    <div className="mt-auto border-t border-slate-100 pt-6" onClick={(e) => e.stopPropagation()}>
                                         {reasonInput.id === hospital._id ? (
                                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                                                 <div>
@@ -285,6 +281,14 @@ const ManageHospitals = () => {
                                                         Restore Access
                                                     </button>
                                                 )}
+
+                                                <button
+                                                    onClick={() => navigate(`/admin/hospital/${hospital._id}`)}
+                                                    className="px-6 py-4 bg-slate-900 hover:bg-black text-white font-black rounded-2xl transition-all flex items-center justify-center group/btn shadow-xl shadow-slate-100"
+                                                >
+                                                    <Info className="w-5 h-5 mr-2 group-hover/btn:scale-110 transition-transform" />
+                                                    View Full Profile
+                                                </button>
                                             </div>
                                         )}
                                     </div>

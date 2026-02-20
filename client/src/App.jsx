@@ -14,6 +14,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import ForgotPassword from './pages/ForgotPassword';
 import HowItWorks from './pages/HowItWorks';
 import ManageHospitals from './pages/ManageHospitals';
+import HospitalDetail from './pages/HospitalDetail';
+import AdminAnalytics from './pages/AdminAnalytics';
 import SubmitCase from './pages/SubmitCase';
 import HospitalCaseDetail from './pages/HospitalCaseDetail';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -70,6 +72,18 @@ function App() {
                         <Route path="/manage-hospitals" element={
                             <ProtectedRoute allowedRoles={['admin']}>
                                 <ManageHospitals />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/admin/hospital/:id" element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                                <HospitalDetail />
+                            </ProtectedRoute>
+                        } />
+
+                        <Route path="/admin/analytics" element={
+                            <ProtectedRoute allowedRoles={['admin']}>
+                                <AdminAnalytics />
                             </ProtectedRoute>
                         } />
 
