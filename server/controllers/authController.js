@@ -63,7 +63,11 @@ exports.registerSupporter = asyncHandler(async (req, res, next) => {
 });
 
 exports.registerPatient = asyncHandler(async (req, res, next) => {
-  const { name, email, password, phone, gender, dob, emergencyContact, address } = req.body;
+  const {
+    name, email, password, phone, gender, dob,
+    bloodGroup, idType, idNumber, // Added these
+    emergencyContact, address, city, state, pincode // Standardized address fields
+  } = req.body;
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -89,8 +93,18 @@ exports.registerPatient = asyncHandler(async (req, res, next) => {
     userId: user._id,
     gender,
     dob,
+    bloodGroup,
+    idProof: {
+      type: idType,
+      number: idNumber
+    },
     emergencyContact,
-    address
+    address: {
+      line1: (typeof address === 'string' ? address : address?.line1) || 'Address Line 1',
+      city: city || address?.city || 'City',
+      state: state || address?.state || 'State',
+      pincode: pincode || address?.pincode || '000000'
+    }
   });
 
   const verificationUrl = `${process.env.CLIENT_URL}/verify-email/${verificationToken}`;

@@ -1,7 +1,10 @@
 
+
 const MedicalCase = require('../models/MedicalCase');
+const User = require('../models/User');
 const autoAssignHospital = require('../services/autoAssignHospital');
 const { redisClient } = require('../config/redis');
+const { getSpecialityForDisease } = require('../utils/diseaseMapping');
 
 
 
@@ -13,6 +16,12 @@ exports.createCase = async (req, res) => {
   try {
 
     const caseData = { ...req.body, patientId: req.user.id };
+
+    // ✅ AUTO-DETECT SPECIALITY FROM DISEASE
+    if (caseData.disease && !caseData.requiredSpeciality) {
+      caseData.requiredSpeciality = getSpecialityForDisease(caseData.disease);
+      console.log(`🔍 Auto-detected speciality: ${caseData.requiredSpeciality} for disease: ${caseData.disease}`);
+    }
 
     // 🔥 REDIS DUPLICATE CHECK (Better than DB heavy check)
     const duplicateKey = `case:phone:${caseData.phone}`;
@@ -28,6 +37,9 @@ exports.createCase = async (req, res) => {
         { status: 'pending', remarks: 'Case submitted for hospital verification' }
       ]
     });
+
+    // ✅ Match proper: Increment activeCases in User model
+    await User.findByIdAndUpdate(req.user.id, { $inc: { activeCases: 1 } });
 
     // Store duplicate key for 24 hours
     await redisClient.setEx(duplicateKey, 86400, "true");
@@ -145,8 +157,12 @@ exports.updateCaseStatus = async (req, res) => {
       return res.status(403).json({ message: 'Not your assigned case' });
     }
 
-    medicalCase.status = status;
+    // ✅ Match proper: Decrement activeCases if the case is completed or rejected
+    if (['completed', 'rejected'].includes(status) && medicalCase.status !== status) {
+      await User.findByIdAndUpdate(medicalCase.patientId, { $inc: { activeCases: -1 } });
+    }
 
+    medicalCase.status = status;
     medicalCase.timeline.push({ status, remarks });
 
     await medicalCase.save();

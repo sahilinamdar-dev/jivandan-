@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { medicalSpecialities, commonDiseases } from '../data/specialities';
+import { getSpecialityForDisease } from '../utils/diseaseMapping';
 
 const SubmitCase = () => {
     const navigate = useNavigate();
@@ -78,7 +79,17 @@ const SubmitCase = () => {
                 [parent]: { ...prev[parent], [child]: value }
             }));
         } else {
-            setFormData(prev => ({ ...prev, [name]: value }));
+            // ✅ Auto-populate requiredSpeciality when disease is selected
+            if (name === 'disease' && value) {
+                const autoSpeciality = getSpecialityForDisease(value);
+                setFormData(prev => ({
+                    ...prev,
+                    [name]: value,
+                    requiredSpeciality: autoSpeciality
+                }));
+            } else {
+                setFormData(prev => ({ ...prev, [name]: value }));
+            }
         }
     };
 
@@ -192,7 +203,7 @@ const SubmitCase = () => {
                                                     currentCondition: "serious",
                                                     recommendedTreatment: "Kidney Transplant & Immunosuppressants",
                                                     expectedDuration: "12 months",
-                                                    requiredSpeciality: "Nephrology",
+                                                    requiredSpeciality: "Cardiology",
                                                     amountRequired: "800000",
                                                     amountAlreadyArranged: "100000",
                                                     costBreakdown: {
