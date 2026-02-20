@@ -79,8 +79,8 @@ const medicalCaseSchema = new mongoose.Schema({
   // Step 5: Verification
   status: {
     type: String,
-    enum: ['pending', 'assigned', 'hospital_verified', 'live', 'completed', 'rejected'],
-    default: 'pending'
+    enum: ['CASE_SUBMITTED', 'CASE_VERIFIED', 'HOSPITAL_ASSIGNED', 'HOSPITAL_APPROVED', 'CASE_LIVE', 'TREATMENT_MILESTONE', 'completed', 'rejected'],
+    default: 'CASE_SUBMITTED'
   },
 
   consents: {
@@ -107,7 +107,22 @@ const medicalCaseSchema = new mongoose.Schema({
     status: String,
     updatedAt: { type: Date, default: Date.now },
     remarks: String
-  }]
+  }],
+
+  // Fraud Detection
+  fraudScore: {
+    type: Number,
+    default: 0
+  },
+  fraudReason: {
+    type: String,
+    default: ''
+  },
+  fraudStatus: {
+    type: String,
+    enum: ['SAFE', 'REVIEW', 'BLOCKED'],
+    default: 'SAFE'
+  }
 
 }, { timestamps: true });
 

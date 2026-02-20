@@ -19,6 +19,7 @@ const SubmitCase = () => {
     const [loading, setLoading] = useState(false);
     const [hospitals, setHospitals] = useState([]);
     const [error, setError] = useState('');
+    const [fraudStatus, setFraudStatus] = useState('SAFE');
 
     const [formData, setFormData] = useState({
         // Step 1: Identity
@@ -110,7 +111,8 @@ const SubmitCase = () => {
                 ...formData,
                 disease: formData.disease === 'Other' ? formData.otherDisease : formData.disease
             };
-            await api.post('/cases', submissionData);
+            const response = await api.post('/cases', submissionData);
+            setFraudStatus(response.data.case.fraudStatus);
             setStep(6); // Success Step
         } catch (err) {
             console.error("Submission error details:", err.response?.data);
@@ -816,13 +818,23 @@ const SubmitCase = () => {
                                 animate={{ opacity: 1, scale: 1 }}
                                 className="text-center py-12"
                             >
-                                <div className="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-8">
-                                    <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+                                <div className={`w-24 h-24 ${fraudStatus === 'REVIEW' ? 'bg-red-50' : 'bg-emerald-50'} rounded-full flex items-center justify-center mx-auto mb-8`}>
+                                    {fraudStatus === 'REVIEW' ? (
+                                        <AlertCircle className="w-12 h-12 text-red-500" />
+                                    ) : (
+                                        <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+                                    )}
                                 </div>
-                                <h2 className="text-4xl font-black text-slate-900 mb-4">Case Submitted!</h2>
-                                <p className="text-lg text-slate-600 font-medium mb-10 max-w-md mx-auto">
-                                    Your medical case has been sent for verification. You will be notified once the hospital reviews your documents.
-                                </p>
+                                <h2 className={`text-4xl font-black mb-4 ${fraudStatus === 'REVIEW' ? 'text-red-600' : 'text-slate-900'}`}>
+                                    {fraudStatus === 'REVIEW' ? 'Fraud Alert: Review Required' : 'Case Submitted!'}
+                                </h2>
+                                <div className={`p-6 rounded-2xl mb-10 max-w-md mx-auto ${fraudStatus === 'REVIEW' ? 'bg-red-50 border border-red-100' : 'bg-emerald-50 border border-emerald-100'}`}>
+                                    <p className={`text-lg font-bold ${fraudStatus === 'REVIEW' ? 'text-red-700' : 'text-emerald-700'}`}>
+                                        {fraudStatus === 'REVIEW'
+                                            ? "⚠️ Requested amount exceeds standard treatment cost. Case sent for verification."
+                                            : "Your medical case has been sent for verification. You will be notified once the hospital reviews your documents."}
+                                    </p>
+                                </div>
                                 <button
                                     onClick={() => navigate('/patient-dashboard')}
                                     className="px-12 py-4 premium-gradient text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-100 hover:scale-[1.05] transition-all"

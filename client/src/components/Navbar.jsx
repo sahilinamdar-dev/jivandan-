@@ -45,9 +45,12 @@ const Navbar = () => {
                         {user ? (
                             <div className="flex items-center space-x-6 h-10 pl-6 border-l border-slate-100">
                                 {user.role === 'admin' && (
-                                    <Link to="/manage-hospitals" className="text-sm font-black text-indigo-600 hover:text-indigo-700 transition-colors uppercase tracking-widest">
-                                        Directory
-                                    </Link>
+                                    <div className="flex items-center space-x-6 border-l border-slate-200 pl-6">
+                                        <Link to="/admin/stats" className="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">Analytics</Link>
+                                        <Link to="/admin/cases/flagged" className="text-sm font-bold text-slate-600 hover:text-rose-600 transition-colors">Fraud Desk</Link>
+                                        <Link to="/manage-hospitals" className="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">Hospitals</Link>
+                                    </div>
+
                                 )}
                                 <Link
                                     to={user.role === 'supporter' ? '/supporter-dashboard' : `/${user.role}-dashboard`}

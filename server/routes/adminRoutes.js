@@ -10,9 +10,11 @@ const {
   getRejectedHospitals,
   getBlacklistedHospitals,
   getAdminStats,
+  getFlaggedCases,
   getHospitalById,
   getVerifiedAdminHospitals,
   getAdminAnalytics
+
 } = require('../controllers/adminController');
 
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -68,5 +70,8 @@ router.get('/analytics', getAdminAnalytics);
 
 // GET /api/admin/transactions
 router.get('/transactions', getAllTransactions);
+
+// GET /api/admin/cases/flagged
+router.get('/cases/flagged', getFlaggedCases);
 
 module.exports = router;
