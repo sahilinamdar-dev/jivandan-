@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const Donation = require('../models/Donation');
 const MedicalCase = require('../models/MedicalCase');
 const Donor = require('../models/Donor');
+const { redisClient } = require('../config/redis');
 
 let razorpay = null;
 // ... (keep getRazorpayInstance as is)
@@ -126,27 +127,39 @@ exports.verifyPayment = async (req, res) => {
     donation.status = 'completed';
     await donation.save();
 
-    // update case collected amount
-    const medicalCase = await MedicalCase.findById(donation.medicalCase);
-    if (medicalCase) {
-      console.log(`Updating MedicalCase collection for: ${medicalCase._id}`);
-      medicalCase.amountCollected += donation.amount;
+    // 🔥 ATOMIC UPDATE: Medical Case collected amount
+    const updatedCase = await MedicalCase.findOneAndUpdate(
+      { _id: donation.medicalCase },
+      { $inc: { amountCollected: donation.amount } },
+      { new: true }
+    );
 
-      if (medicalCase.amountCollected >= medicalCase.amountRequired) {
-        medicalCase.status = 'completed';
+    if (updatedCase) {
+      console.log(`✅ Atomic Update: MedicalCase ${updatedCase._id} collected amount incremented by ${donation.amount}`);
+
+      // If fully funded, mark as completed
+      if (updatedCase.amountCollected >= updatedCase.amountRequired) {
+        await MedicalCase.findByIdAndUpdate(updatedCase._id, { status: 'completed' });
+        console.log(`🎯 Case ${updatedCase._id} fully funded and completed!`);
       }
 
-      await medicalCase.save();
+      // 🔥 CACHE INVALIDATION (Non-blocking)
+      Promise.all([
+        redisClient.del("cases:live"),
+        redisClient.del(`case:${updatedCase._id}`)
+      ]).catch(err => console.error("Cache Invalidation Error:", err));
     }
 
-    // update donor stats
-    const donor = await Donor.findById(donation.donor);
-    if (donor) {
-      console.log(`Updating Donor stats for: ${donor._id}`);
-      donor.totalDonatedAmount += donation.amount;
-      donor.donationCount += 1;
-      await donor.save();
-    }
+    // 🔥 ATOMIC UPDATE: Donor stats
+    await Donor.findByIdAndUpdate(
+      donation.donor,
+      {
+        $inc: {
+          totalDonatedAmount: donation.amount,
+          donationCount: 1
+        }
+      }
+    );
 
     console.log('🎉 Payment verification complete and successful.');
     res.json({ success: true, message: 'Payment verified successfully' });

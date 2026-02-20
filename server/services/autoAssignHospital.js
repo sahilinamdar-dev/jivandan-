@@ -40,8 +40,8 @@ const autoAssignHospital = async (caseId) => {
       assignedHospital: null
     },
     {
-      assignedHospital: selectedHospital.userId._id,
-      hospitalId: selectedHospital._id,
+      assignedHospital: selectedHospital.userId._id, // Keep legacy field for now
+      hospitalId: selectedHospital.userId._id, // Now using User ID consistently
       locked: true,
       status: 'assigned',
       $push: {

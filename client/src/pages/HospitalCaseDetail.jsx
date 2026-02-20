@@ -135,13 +135,14 @@ const HospitalCaseDetail = () => {
         setActionLoading(true);
         try {
             await api.patch(`/cases/${id}/status`, {
-                status: newStatus === 'verify' ? 'hospital_verified' : 'rejected',
-                remarks
+                status: newStatus === 'verify' ? 'live' : 'rejected',
+                remarks: remarks || (newStatus === 'verify' ? 'Case verified and marked as live by hospital' : '')
             });
             alert(`Case ${newStatus === 'verify' ? 'Verified' : 'Rejected'} successfully!`);
             navigate('/hospital-dashboard');
         } catch (err) {
-            alert('Failed to update case status');
+            console.error(err);
+            alert(err.response?.data?.message || 'Failed to update case status');
         } finally {
             setActionLoading(false);
         }
@@ -183,7 +184,7 @@ const HospitalCaseDetail = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        {c.status === 'pending' ? (
+                        {(c.status === 'pending' || c.status === 'assigned') ? (
                             <>
                                 <button
                                     onClick={() => handleAction('verify')}

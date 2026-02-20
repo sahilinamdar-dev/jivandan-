@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const CaseCard = ({ medicalCase }) => {
-    const patientPhoto = medicalCase.documents?.find(d => d.type === 'patient_photo')?.url || "https://images.unsplash.com/photo-1516549221184-ef395c07421f?q=80&w=600&auto=format&fit=crop";
+    const patientPhoto = medicalCase.documents?.find(d => d.type === 'patient_photo' && !d.url?.startsWith('blob:'))?.url || "https://images.unsplash.com/photo-1516549221184-ef395c07421f?q=80&w=600&auto=format&fit=crop";
 
     return (
         <motion.div

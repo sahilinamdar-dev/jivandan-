@@ -11,7 +11,7 @@ const medicalCaseSchema = new mongoose.Schema({
   hospitalId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    default: null   // assigned by system later
+    default: null   // User ID of the assigned hospital
   },
 
   assignedHospital: {
@@ -79,7 +79,7 @@ const medicalCaseSchema = new mongoose.Schema({
   // Step 5: Verification
   status: {
     type: String,
-    enum: ['pending', 'assigned', 'hospital_verified', 'live', 'completed', 'rejected'],
+    enum: ['pending', 'assigned', 'live', 'completed', 'rejected'],
     default: 'pending'
   },
 
@@ -110,5 +110,11 @@ const medicalCaseSchema = new mongoose.Schema({
   }]
 
 }, { timestamps: true });
+
+// 🔥 Indexes for Performance
+medicalCaseSchema.index({ hospitalId: 1, status: 1 });
+medicalCaseSchema.index({ status: 1 });
+medicalCaseSchema.index({ assignedHospital: 1 });
+medicalCaseSchema.index({ patientId: 1 });
 
 module.exports = mongoose.model('MedicalCase', medicalCaseSchema);

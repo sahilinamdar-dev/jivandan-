@@ -69,7 +69,7 @@ const TrendingCases = ({ cases }) => {
                 >
                     {cases.map((caseItem, index) => {
                         const progress = (caseItem.amountCollected / caseItem.amountRequired) * 100;
-                        const patientPhoto = caseItem.documents?.find(d => d.type === 'patient_photo')?.url || "https://images.unsplash.com/photo-1516549221184-ef395c07421f?q=80&w=600&auto=format&fit=crop";
+                        const patientPhoto = caseItem.documents?.find(d => d.type === 'patient_photo' && !d.url?.startsWith('blob:'))?.url || "https://images.unsplash.com/photo-1516549221184-ef395c07421f?q=80&w=600&auto=format&fit=crop";
 
                         return (
                             <motion.div

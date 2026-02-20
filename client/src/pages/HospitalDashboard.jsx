@@ -22,12 +22,13 @@ const HospitalDashboard = () => {
         const fetchAllCases = async () => {
             setLoading(true);
             try {
-                const [pendingRes, verifiedRes, liveRes] = await Promise.all([
+                const [pendingRes, assignedRes, verifiedRes, liveRes] = await Promise.all([
                     api.get('/cases/hospital/pending?status=pending'),
+                    api.get('/cases/hospital/pending?status=assigned'),
                     api.get('/cases/hospital/pending?status=hospital_verified'),
                     api.get('/cases/hospital/pending?status=live')
                 ]);
-                setCases(pendingRes.data);
+                setCases([...pendingRes.data, ...assignedRes.data]);
                 // Combine hospital_verified and already live cases for the verified tab
                 setVerifiedCases([...verifiedRes.data, ...liveRes.data]);
             } catch (err) {
@@ -41,7 +42,11 @@ const HospitalDashboard = () => {
         fetchAllCases();
     }, [api]);
 
-    const displayCases = activeTab === 'pending' ? cases : verifiedCases;
+    const [searchTerm, setSearchTerm] = useState('');
+    const displayCases = (activeTab === 'pending' ? cases : verifiedCases).filter(c =>
+        c.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.disease?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <div className="min-h-screen pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-slate-50">
@@ -108,7 +113,13 @@ const HospitalDashboard = () => {
                                 </div>
                                 <div className="relative">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input type="text" placeholder="Search case..." className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-100" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search patient or disease..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-100"
+                                    />
                                 </div>
                             </div>
 

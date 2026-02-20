@@ -129,38 +129,43 @@ exports.getCaseDetails = async (req, res) => {
 
 exports.updateCaseStatus = async (req, res) => {
   try {
-
     const { status, remarks } = req.body;
 
-    const medicalCase = await MedicalCase.findById(req.params.id);
-
-    if (!medicalCase) {
-      return res.status(404).json({ message: 'Case not found' });
+    // Further optimized: Authorization check and update in one atomic operation
+    const filter = { _id: req.params.id };
+    if (req.user.role === 'hospital') {
+      filter.$or = [
+        { hospitalId: req.user.id },
+        { assignedHospital: req.user.id }
+      ];
     }
 
-    if (
-      req.user.role === 'hospital' &&
-      medicalCase.assignedHospital?.toString() !== req.user.id
-    ) {
-      return res.status(403).json({ message: 'Not your assigned case' });
+    const updatedCase = await MedicalCase.findOneAndUpdate(
+      filter,
+      {
+        $set: { status },
+        $push: { timeline: { status, remarks, updatedAt: new Date() } }
+      },
+      { new: true }
+    );
+
+    if (!updatedCase) {
+      return res.status(404).json({ message: 'Case not found or unauthorized' });
     }
 
-    medicalCase.status = status;
-
-    medicalCase.timeline.push({ status, remarks });
-
-    await medicalCase.save();
-
-    // 🔥 CACHE INVALIDATION
-    await redisClient.del("cases:live");
-    await redisClient.del(`case:${medicalCase._id}`);
+    // 🔥 CACHE INVALIDATION (Non-blocking for faster response)
+    Promise.all([
+      redisClient.del("cases:live"),
+      redisClient.del(`case:${req.params.id}`)
+    ]).catch(err => console.error("Cache Invalidation Error:", err));
 
     res.json({
       success: true,
-      case: medicalCase
+      case: updatedCase
     });
 
   } catch (err) {
+    console.error("Update Status Error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -188,7 +193,7 @@ exports.getHospitalCases = async (req, res) => {
     const cases = await MedicalCase.find({
       hospitalId: req.user.id,
       status
-    }).populate('patientId', 'name email phone');
+    }).populate('patientId', 'name email phone city state age gender');
 
     await redisClient.setEx(cacheKey, 120, JSON.stringify(cases));
 
