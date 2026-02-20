@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, Users, AlertTriangle, BarChart3, Building2, CheckCircle, Package, Receipt, Filter, ArrowUpRight, Search, LayoutDashboard } from 'lucide-react';
+import { ShieldCheck, Users, AlertTriangle, BarChart3, Building2, CheckCircle, Package, Receipt, Filter, ArrowUpRight, Search, LayoutDashboard, Activity } from 'lucide-react';
+
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const { api } = useAuth();
+
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -56,33 +58,40 @@ const AdminDashboard = () => {
     return (
         <div className="min-h-screen pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-slate-50">
             <div className="max-w-7xl mx-auto">
-                <div className="mb-12">
-                    <h1 className="text-4xl font-black text-slate-900 mb-2 tracking-tight">System Authority</h1>
-                    <p className="text-slate-600 font-medium">Platform-wide governance and fraud monitoring.</p>
+                <div className="mb-14 relative">
+                    <div className="absolute -left-10 top-0 w-24 h-24 bg-indigo-500/10 blur-3xl rounded-full" />
+                    <h1 className="text-5xl font-black text-slate-900 mb-3 tracking-tighter">System Authority</h1>
+                    <div className="flex items-center gap-3">
+                        <div className="h-1 w-12 bg-indigo-600 rounded-full" />
+                        <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px]">Registry Governance & Fraud Monitor</p>
+                    </div>
                 </div>
 
                 {/* Dashboard Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-14">
                     {statsDisplay.map((stat, i) => (
                         <motion.div
                             key={i}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: i * 0.1 }}
-                            className="glass-card p-6 rounded-[32px] border border-slate-100 flex items-center space-x-4 shadow-xl shadow-slate-200/50 relative overflow-hidden"
+                            whileHover={{ scale: 1.02 }}
+                            className="bg-white p-7 rounded-[32px] border border-slate-100 flex items-center space-x-5 shadow-2xl shadow-slate-200/40 relative overflow-hidden group"
                         >
                             {stat.label === 'Fraud Alerts' && parseInt(stat.value) > 0 && (
-                                <div className="absolute top-4 right-4 flex h-3 w-3">
+                                <div className="absolute top-4 right-4 flex h-3 w-3 z-20">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
                                 </div>
                             )}
-                            <div className={`p-4 rounded-2xl bg-white shadow-sm ${stat.color}`}>
-                                <stat.icon className="w-8 h-8" />
+                            <div className="absolute bottom-0 right-0 w-20 h-20 bg-slate-50 rounded-full -mr-10 -mb-10 group-hover:scale-150 transition-transform duration-700" />
+                            <div className={`p-4 rounded-2xl bg-slate-50 shadow-inner relative z-10 ${stat.color}`}>
+                                <stat.icon className="w-7 h-7" />
+
                             </div>
-                            <div>
-                                <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</div>
-                                <div className="text-2xl font-black text-slate-900">{stat.value}</div>
+                            <div className="relative z-10">
+                                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</div>
+                                <div className="text-3xl font-black text-slate-900 tracking-tight">{stat.value}</div>
                             </div>
                         </motion.div>
                     ))}
@@ -243,20 +252,48 @@ const AdminDashboard = () => {
                         </div>
                     </div>
 
-                    {/* Escrow Status Panel */}
-                    <div className="lg:col-span-1">
-                        <div className="glass-card rounded-[40px] p-8 border border-white bg-slate-900 text-white shadow-2xl relative overflow-hidden group">
-                            <div className="absolute top-0 left-0 w-full h-1 premium-gradient" />
-                            <Package className="w-12 h-12 text-indigo-400 mb-6 opacity-30 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500" />
-                            <h3 className="text-xl font-bold mb-4 tracking-tight">Escrow Activity</h3>
-                            <div className="space-y-6">
-                                <div className="py-10 text-center border border-white/10 rounded-2xl">
-                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">No Active Escrows</p>
+                    {/* Escrow Status Panel & Analytics Quick Link */}
+                    <div className="lg:col-span-1 space-y-8">
+                        {/* Improved Analytics Card */}
+                        <motion.div
+                            whileHover={{ y: -5 }}
+                            className="p-8 rounded-[40px] bg-indigo-600 text-white shadow-2xl shadow-indigo-200 relative overflow-hidden group cursor-pointer"
+                            onClick={() => navigate('/admin/analytics')}
+                        >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-white/20 transition-colors" />
+                            <div className="relative z-10">
+                                <Activity className="w-10 h-10 text-indigo-100 mb-6" />
+                                <h3 className="text-2xl font-black mb-2 tracking-tight">System Insights</h3>
+                                <p className="text-indigo-100/80 text-sm font-bold mb-8">View deep-dive analytics and performance trends.</p>
+                                <div className="flex items-center text-xs font-black uppercase tracking-widest group-hover:translate-x-2 transition-transform">
+                                    Explore Analytics <ArrowUpRight className="w-4 h-4 ml-2" />
                                 </div>
                             </div>
-                            <button className="w-full mt-10 py-4 rounded-2xl bg-white/10 border border-white/20 font-bold hover:bg-white/20 transition-all uppercase tracking-widest text-xs">
-                                View Analytics
-                            </button>
+                        </motion.div>
+
+                        {/* Updated Escrow Panel */}
+                        <div className="glass-card rounded-[40px] p-8 border border-white bg-slate-900 text-white shadow-2xl relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-1 premium-gradient" />
+                            <Package className="w-10 h-10 text-indigo-400 mb-6 opacity-30" />
+                            <h3 className="text-xl font-black mb-4 tracking-tight">Escrow Activity</h3>
+                            <div className="space-y-6">
+                                <div className="py-12 text-center bg-white/5 border border-white/10 rounded-[2rem]">
+                                    <ShieldCheck className="w-10 h-10 text-white/10 mx-auto mb-4" />
+                                    <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">No Active Escrows</p>
+                                    <p className="text-white/30 text-xs mt-1 px-4">Funds are currently distributed directly to verified causes.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* System Health Status */}
+                        <div className="p-6 rounded-[2.5rem] bg-emerald-50 border border-emerald-100 flex items-center gap-4">
+                            <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center">
+                                <ShieldCheck className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-black text-emerald-900 uppercase tracking-tight">Security Core</h4>
+                                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Status: Operational</p>
+                            </div>
                         </div>
                     </div>
                 </div>

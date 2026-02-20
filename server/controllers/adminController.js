@@ -277,6 +277,108 @@ exports.getAllHospitals = asyncHandler(async (req, res) => {
 
 
 /* ======================================================
+   NEW: GET VERIFIED HOSPITALS (ADMIN)
+====================================================== */
+exports.getVerifiedAdminHospitals = asyncHandler(async (req, res) => {
+
+  const cacheKey = "admin:hospitals:verified";
+
+  const cached = await redisClient.get(cacheKey);
+  if (cached) {
+    console.log("📦 Verified Hospitals from Redis");
+    return res.status(200).json({
+      success: true,
+      ...JSON.parse(cached)
+    });
+  }
+
+  console.log("🗄 Verified Hospitals from MongoDB");
+
+  const users = await User.find({
+    role: 'hospital',
+    status: 'approved'
+  }).select('-password');
+
+  const hospitals = await Hospital.find({
+    userId: { $in: users.map(u => u._id) }
+  }).populate('userId', 'name email status');
+
+  const transformedHospitals = hospitals.map(h => ({
+    _id: h._id,
+    name: h.userId?.name || 'N/A',
+    email: h.userId?.email || 'N/A',
+    status: h.userId?.status || 'approved',
+    hospitalName: h.hospitalName,
+    registrationNumber: h.registrationNumber,
+    hospitalType: h.hospitalType,
+    address: h.address,
+    contact: h.contact,
+    specialities: h.specialities,
+    facilities: h.facilities,
+    authorizedPerson: h.authorizedPerson,
+    documents: h.documents,
+    activeCases: h.activeCases,
+    maxCapacity: h.maxCapacity,
+    isActive: h.isActive,
+    createdAt: h.createdAt,
+    updatedAt: h.updatedAt
+  }));
+
+  const result = {
+    count: transformedHospitals.length,
+    hospitals: transformedHospitals
+  };
+
+  await redisClient.setEx(cacheKey, 120, JSON.stringify(result));
+
+  res.status(200).json({
+    success: true,
+    ...result
+  });
+});
+
+/* ======================================================
+   NEW: GET HOSPITAL BY ID (ADMIN)
+====================================================== */
+exports.getHospitalById = asyncHandler(async (req, res, next) => {
+  const hospital = await Hospital.findById(req.params.hospitalId)
+    .populate('userId', 'name email status statusReason phone');
+
+  if (!hospital) {
+    return next(new ErrorHandler('Hospital not found', 404));
+  }
+
+  // Transform to flat object
+  const result = {
+    _id: hospital._id,
+    name: hospital.userId?.name || 'N/A',
+    email: hospital.userId?.email || 'N/A',
+    status: hospital.userId?.status || 'pending',
+    statusReason: hospital.userId?.statusReason || '',
+    hospitalName: hospital.hospitalName,
+    registrationNumber: hospital.registrationNumber,
+    hospitalType: hospital.hospitalType,
+    address: hospital.address,
+    contact: hospital.contact,
+    specialities: hospital.specialities,
+    facilities: hospital.facilities,
+    authorizedPerson: hospital.authorizedPerson,
+    documents: hospital.documents,
+    activeCases: hospital.activeCases,
+    maxCapacity: hospital.maxCapacity,
+    specialities: hospital.specialities,
+    isActive: hospital.isActive,
+    createdAt: hospital.createdAt,
+    updatedAt: hospital.updatedAt
+  };
+
+  res.status(200).json({
+    success: true,
+    hospital: result
+  });
+});
+
+/* ======================================================
    2️⃣ GET PENDING HOSPITALS (ADMIN)
 ====================================================== */
 
@@ -379,7 +481,7 @@ exports.updateHospitalStatus = asyncHandler(async (req, res, next) => {
   // 🔥 CACHE INVALIDATION (VERY IMPORTANT)
   await redisClient.del("admin:hospitals:all");
   await redisClient.del("admin:hospitals:pending");
-  await redisClient.del("admin:hospitals:approved");
+  await redisClient.del("admin:hospitals:verified");
   await redisClient.del("admin:hospitals:rejected");
   await redisClient.del("admin:hospitals:blacklisted");
   await redisClient.del("public:hospitals:approved");
@@ -638,6 +740,99 @@ exports.getAdminStats = asyncHandler(async (req, res) => {
       verifiedCases,
       totalDonations,
       fraudAlerts
+    }
+  });
+});
+
+/* ======================================================
+   6️⃣ GET ADMIN ANALYTICS
+   (Trends, break-downs, etc.)
+====================================================== */
+exports.getAdminAnalytics = asyncHandler(async (req, res) => {
+  // 1. Donation Trends (Last 6 Months)
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+  sixMonthsAgo.setDate(1);
+  sixMonthsAgo.setHours(0, 0, 0, 0);
+
+  const donationTrends = await Donation.aggregate([
+    {
+      $match: {
+        status: 'completed',
+        createdAt: { $gte: sixMonthsAgo }
+      }
+    },
+    {
+      $group: {
+        _id: {
+          year: { $year: "$createdAt" },
+          month: { $month: "$createdAt" }
+        },
+        totalAmount: { $sum: "$amount" },
+        count: { $sum: 1 }
+      }
+    },
+    { $sort: { "_id.year": 1, "_id.month": 1 } }
+  ]);
+
+  // 2. Hospital Registration Trends (Last 6 Months)
+  const hospitalTrends = await User.aggregate([
+    {
+      $match: {
+        role: 'hospital',
+        createdAt: { $gte: sixMonthsAgo }
+      }
+    },
+    {
+      $group: {
+        _id: {
+          year: { $year: "$createdAt" },
+          month: { $month: "$createdAt" }
+        },
+        count: { $sum: 1 }
+      }
+    },
+    { $sort: { "_id.year": 1, "_id.month": 1 } }
+  ]);
+
+  // 3. Donation Breakdown by Donor Type
+  const donationBreakdown = await Donation.aggregate([
+    { $match: { status: 'completed' } },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'donor',
+        foreignField: '_id',
+        as: 'donorData'
+      }
+    },
+    { $unwind: "$donorData" },
+    {
+      $group: {
+        _id: "$donorData.donorType",
+        total: { $sum: "$amount" },
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
+  // 4. Case Status Breakdown
+  const caseBreakdown = await MedicalCase.aggregate([
+    {
+      $group: {
+        _id: "$status",
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
+  res.status(200).json({
+    success: true,
+    analytics: {
+      donationTrends,
+      hospitalTrends,
+      donationBreakdown,
+      caseBreakdown
     }
   });
 });

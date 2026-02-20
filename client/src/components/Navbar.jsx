@@ -34,33 +34,40 @@ const Navbar = () => {
                     </Link>
 
                     {/* Desktop Menu */}
-                    <div className="hidden md:flex items-center space-x-8">
+                    <div className="hidden md:flex items-center space-x-10">
                         {user?.role === 'hospital' ? (
-                            <Link to="/hospital-dashboard?tab=verified" className="text-slate-600 hover:text-indigo-600 font-medium transition-colors">My Verified Cases</Link>
+                            <Link to="/hospital-dashboard?tab=verified" className="text-sm font-bold text-slate-500 hover:text-green-700 transition-colors uppercase tracking-widest">My Cases</Link>
                         ) : (
-                            <Link to="/cases" className="text-slate-600 hover:text-indigo-600 font-medium transition-colors">Verified Cases</Link>
+                            <Link to="/cases" className="text-sm font-bold text-slate-500 hover:text-green-700 transition-colors uppercase tracking-widest">Verified Cases</Link>
                         )}
-                        <Link to="/how-it-works" className="text-slate-600 hover:text-indigo-600 font-medium transition-colors">How it Works</Link>
+                        <Link to="/how-it-works" className="text-sm font-bold text-slate-500 hover:text-green-700 transition-colors uppercase tracking-widest">How it Works</Link>
+
                         {user ? (
-                            <div className="flex items-center space-x-4">
-                                <Link to={user.role === 'supporter' ? '/supporter-dashboard' : `/${user.role}-dashboard`} className="flex items-center space-x-2 px-4 py-2 rounded-full border border-slate-200 hover:bg-slate-50 transition-all">
-                                    <User className="w-4 h-4 text-indigo-600" />
-                                    <span className="text-sm font-semibold">{user.name}</span>
-                                </Link>
+                            <div className="flex items-center space-x-6 h-10 pl-6 border-l border-slate-100">
                                 {user.role === 'admin' && (
                                     <div className="flex items-center space-x-6 border-l border-slate-200 pl-6">
                                         <Link to="/admin/stats" className="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">Analytics</Link>
                                         <Link to="/admin/cases/flagged" className="text-sm font-bold text-slate-600 hover:text-rose-600 transition-colors">Fraud Desk</Link>
                                         <Link to="/manage-hospitals" className="text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors">Hospitals</Link>
                                     </div>
+
                                 )}
-                                <button onClick={logout} className="text-sm font-semibold text-red-500 hover:text-red-600">Logout</button>
+                                <Link
+                                    to={user.role === 'supporter' ? '/supporter-dashboard' : `/${user.role}-dashboard`}
+                                    className="flex items-center space-x-3 px-5 py-2 rounded-2xl bg-slate-900 text-white hover:bg-black transition-all shadow-lg shadow-slate-200"
+                                >
+                                    <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center">
+                                        <User className="w-3.5 h-3.5 text-white" />
+                                    </div>
+                                    <span className="text-xs font-black uppercase tracking-widest">{user.name}</span>
+                                </Link>
+                                <button onClick={logout} className="text-xs font-black text-red-500 hover:text-red-600 uppercase tracking-widest">Logout</button>
                             </div>
                         ) : (
-                            <div className="flex items-center space-x-4">
-                                <Link to="/login" className="text-slate-600 hover:text-indigo-600 font-medium">Login</Link>
-                                <Link to="/register" className="btn-primary btn-sm">
-                                    Join Now
+                            <div className="flex items-center space-x-6 pl-6 border-l border-slate-100">
+                                <Link to="/login" className="text-sm font-bold text-slate-500 hover:text-slate-900">Login</Link>
+                                <Link to="/register" className="px-8 py-3 bg-green-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-green-700 transition-all shadow-xl shadow-green-100">
+                                    Join Core
                                 </Link>
                             </div>
                         )}
