@@ -79,7 +79,7 @@ const medicalCaseSchema = new mongoose.Schema({
   // Step 5: Verification
   status: {
     type: String,
-    enum: ['CASE_SUBMITTED', 'CASE_VERIFIED', 'HOSPITAL_ASSIGNED', 'HOSPITAL_APPROVED', 'CASE_LIVE', 'TREATMENT_MILESTONE', 'completed', 'rejected'],
+    enum: ['CASE_SUBMITTED', 'CASE_VERIFIED', 'HOSPITAL_ASSIGNED', 'HOSPITAL_APPROVED', 'CASE_LIVE', 'TREATMENT_MILESTONE', 'completed', 'rejected', 'live', 'assigned'],
     default: 'CASE_SUBMITTED'
   },
 

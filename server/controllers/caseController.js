@@ -102,7 +102,7 @@ exports.getAllCases = async (req, res) => {
 
     console.log("🗄 Cases from MongoDB");
 
-    const cases = await MedicalCase.find({ status: 'live' })
+    const cases = await MedicalCase.find({ status: { $in: ['live', 'CASE_LIVE'] } })
       .populate('patientId', 'name');
 
     await redisClient.setEx(cacheKey, 120, JSON.stringify(cases));
@@ -169,7 +169,7 @@ exports.updateCaseStatus = async (req, res) => {
       return res.status(403).json({ message: 'Not your assigned case' });
     }
 
-    const STATUS_ORDER = ['CASE_SUBMITTED', 'CASE_VERIFIED', 'HOSPITAL_ASSIGNED', 'HOSPITAL_APPROVED', 'CASE_LIVE', 'TREATMENT_MILESTONE'];
+    const STATUS_ORDER = ['CASE_SUBMITTED', 'CASE_VERIFIED', 'HOSPITAL_ASSIGNED', 'HOSPITAL_APPROVED', 'CASE_LIVE', 'TREATMENT_MILESTONE', 'live'];
 
     const currentIndex = STATUS_ORDER.indexOf(medicalCase.status);
     const nextIndex = STATUS_ORDER.indexOf(status);
@@ -192,7 +192,7 @@ exports.updateCaseStatus = async (req, res) => {
     }
 
     // 🚩 Fraud Protection
-    if (medicalCase.fraudStatus === 'REVIEW' && status === 'CASE_LIVE') {
+    if (medicalCase.fraudStatus === 'REVIEW' && (status === 'CASE_LIVE' || status === 'live')) {
       const isVerified = medicalCase.timeline.some(t => t.status === 'CASE_VERIFIED');
       if (!isVerified) {
         return res.status(400).json({ message: 'Fraud review required: Case must be CASE_VERIFIED before going LIVE.' });

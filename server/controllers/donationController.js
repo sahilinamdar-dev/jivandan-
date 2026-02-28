@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const Donation = require('../models/Donation');
 const MedicalCase = require('../models/MedicalCase');
 const Donor = require('../models/Donor');
+const { redisClient } = require('../config/redis');
 
 let razorpay = null;
 // ... (keep getRazorpayInstance as is)
@@ -137,6 +138,14 @@ exports.verifyPayment = async (req, res) => {
       }
 
       await medicalCase.save();
+
+      // 🔥 CACHE INVALIDATION
+      await redisClient.del("cases:live");
+      await redisClient.del(`case:${medicalCase._id}`);
+      if (medicalCase.hospitalId) {
+        await redisClient.del(`hospital:${medicalCase.hospitalId}:cases:live`);
+        await redisClient.del(`hospital:${medicalCase.hospitalId}:cases:HOSPITAL_APPROVED`);
+      }
     }
 
     // update donor stats

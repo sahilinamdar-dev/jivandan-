@@ -720,7 +720,7 @@ exports.getAdminStats = asyncHandler(async (req, res) => {
   const activeHospitals = await User.countDocuments({ role: 'hospital', status: 'approved' });
   const pendingHospitals = await User.countDocuments({ role: 'hospital', status: 'pending' });
   const totalCases = await MedicalCase.countDocuments();
-  const verifiedCases = await MedicalCase.countDocuments({ status: 'live' });
+  const verifiedCases = await MedicalCase.countDocuments({ status: { $in: ['live', 'CASE_LIVE'] } });
 
   // Aggregate total donations
   const totalDonationsArray = await Donation.aggregate([

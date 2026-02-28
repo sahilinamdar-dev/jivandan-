@@ -58,10 +58,10 @@ const autoAssignHospital = async (caseId) => {
         assignedHospital: selectedHospital.userId._id,
         hospitalId: selectedHospital.userId._id,
         locked: true,
-        status: 'assigned',
+        status: 'HOSPITAL_ASSIGNED',
         $push: {
           timeline: {
-            status: 'assigned',
+            status: 'HOSPITAL_ASSIGNED',
             remarks: `Automatically assigned to ${selectedHospital.hospitalName} (${specialityNeeded} dept.)`
           }
         }
