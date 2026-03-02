@@ -13,6 +13,7 @@ const CaseDetail = () => {
     const [loading, setLoading] = useState(true);
     const [amount, setAmount] = useState(500);
     const [donating, setDonating] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     useEffect(() => {
         const fetchCase = async () => {
@@ -59,8 +60,8 @@ const CaseDetail = () => {
                 key: import.meta.env.VITE_RAZORPAY_KEY_ID,
                 amount: order.amount,
                 currency: order.currency,
-                name: "TrustAid",
-                description: `Donation for ${c.title}`,
+                name: "JIVANDAN",
+                description: `Donation for ${c.patientName}`,
                 order_id: order.id,
                 handler: async (response) => {
                     try {
@@ -72,7 +73,7 @@ const CaseDetail = () => {
                         });
 
                         if (verifyRes.data.success) {
-                            alert('Thank you for your donation!');
+                            setShowSuccess(true);
                             // Refresh case data
                             const updatedRes = await api.get(`/cases/${id}`);
                             setCase(updatedRes.data);
@@ -302,6 +303,45 @@ const CaseDetail = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Success Modal */}
+            <AnimatePresence>
+                {showSuccess && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.5, y: 100 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.5, y: 100 }}
+                            className="bg-white w-full max-w-md rounded-[40px] p-12 text-center shadow-2xl relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600" />
+
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner"
+                            >
+                                <ShieldCheck className="w-12 h-12 text-emerald-600" />
+                            </motion.div>
+
+                            <h2 className="text-3xl font-black text-slate-900 mb-3 leading-tight">Contribution Confirmed!</h2>
+                            <p className="text-slate-500 font-medium mb-10 leading-relaxed px-4">
+                                Your contribution has been securely processed. You've just brought {c.patientId?.name || 'someone'} a step closer to recovery.
+                            </p>
+
+                            <button
+                                onClick={() => setShowSuccess(false)}
+                                className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-xl hover:bg-indigo-600 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                            >
+                                Continue Healing
+                            </button>
+
+                            <p className="mt-6 text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Transaction Verified by JIVANDAN</p>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

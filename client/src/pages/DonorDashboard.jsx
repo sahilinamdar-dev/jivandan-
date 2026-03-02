@@ -13,6 +13,7 @@ const DonorDashboard = () => {
     const [selectedCase, setSelectedCase] = useState(null);
     const [donationAmount, setDonationAmount] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
 
     // 1. Fetch Real Data from Backend
     useEffect(() => {
@@ -42,6 +43,12 @@ const DonorDashboard = () => {
     // 2. Razorpay Payment Logic
     const handlePayment = async () => {
         if (!donationAmount || isProcessing) return;
+        const amountNum = parseInt(donationAmount);
+        if (isNaN(amountNum) || amountNum <= 0) {
+            alert("Please enter a valid amount");
+            return;
+        }
+
         setIsProcessing(true);
 
         const script = document.createElement("script");
@@ -49,29 +56,42 @@ const DonorDashboard = () => {
 
         script.onload = async () => {
             try {
-                // Optional: Create order on backend first for security
-                // const order = await axios.post('/api/payment/order', { amount: donationAmount });
+                // 1. Create order on backend
+                const { data: order } = await api.post('/donations/order', {
+                    amount: amountNum,
+                    caseId: selectedCase?._id
+                });
 
                 const options = {
-                    key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Replace with your actual key
-                    amount: Number(donationAmount) * 100, // Paise
-                    currency: "INR",
-                    name: "LifeCare Foundation",
-                    description: `Donation for ${selectedCase?.patientName || 'Medical Case'}`,
+                    key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+                    amount: order.amount,
+                    currency: order.currency,
+                    name: "JIVANDAN",
+                    description: `Donation for ${selectedCase?.patientName}`,
+                    order_id: order.id,
                     handler: async function (response) {
-                        // After success, update the 'amountCollected' in DB
                         try {
-                            await api.patch(`/cases/${selectedCase?._id}/donate`, {
-                                paymentId: response.razorpay_payment_id,
-                                amount: Number(donationAmount)
+                            // 2. Verify payment on backend
+                            const verifyRes = await api.post('/donations/verify', {
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature,
                             });
-                            alert("Thank you for your generous donation!");
-                            window.location.reload(); // Refresh to show updated progress
+
+                            if (verifyRes.data.success) {
+                                setSelectedCase(null);
+                                setDonationAmount("");
+                                setShowSuccess(true);
+                            }
                         } catch (e) {
-                            console.error("DB Update Failed", e);
+                            console.error("Payment Verification Failed", e);
+                            alert("Payment verification failed. Please contact support.");
                         }
                     },
-                    prefill: { name: "Supporter", email: "supporter@example.com" },
+                    prefill: {
+                        name: "Supporter",
+                        email: "supporter@example.com"
+                    },
                     theme: { color: "#4F46E5" },
                 };
 
@@ -79,6 +99,7 @@ const DonorDashboard = () => {
                 rzp.open();
             } catch (err) {
                 console.error("Razorpay init error", err);
+                alert("Failed to initiate payment. Please try again.");
             } finally {
                 setIsProcessing(false);
             }
@@ -87,7 +108,7 @@ const DonorDashboard = () => {
     };
 
     return (
-        <div className="min-h-screen pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-slate-50">
+        <div className="min-h-screen pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-slate-50 relative">
             <div className="max-w-7xl mx-auto">
 
                 {/* Header */}
@@ -223,6 +244,45 @@ const DonorDashboard = () => {
                                 </button>
                                 <p className="text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest">Secure Payment via Razorpay</p>
                             </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Success Modal */}
+            <AnimatePresence>
+                {showSuccess && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.5, y: 100 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.5, y: 100 }}
+                            className="bg-white w-full max-w-md rounded-[40px] p-12 text-center shadow-2xl relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600" />
+
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                                className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner"
+                            >
+                                <ShieldCheck className="w-12 h-12 text-emerald-600" />
+                            </motion.div>
+
+                            <h2 className="text-3xl font-black text-slate-900 mb-3 leading-tight">Contribution Confirmed!</h2>
+                            <p className="text-slate-500 font-medium mb-10 leading-relaxed px-4">
+                                Your generic contribution has been securely processed. You've just brought someone a step closer to recovery.
+                            </p>
+
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-xl hover:bg-indigo-600 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                            >
+                                Continue Healing
+                            </button>
+
+                            <p className="mt-6 text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Transaction Verified by JIVANDAN</p>
                         </motion.div>
                     </div>
                 )}
