@@ -21,6 +21,7 @@ import HospitalCaseDetail from './pages/HospitalCaseDetail';
 import AdminStats from './pages/AdminStats';
 import FlaggedCases from './pages/FlaggedCases';
 import ProtectedRoute from './components/ProtectedRoute';
+import AIChatbot from './components/AIChatbot';
 
 function App() {
     return (
@@ -106,6 +107,7 @@ function App() {
                         <Route path="/how-it-works" element={<HowItWorks />} />
                     </Routes>
                 </div>
+                <AIChatbot />
             </AuthProvider>
         </Router>
     );

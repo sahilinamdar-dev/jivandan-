@@ -19,6 +19,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/cases', require('./routes/caseRoutes'));
 app.use('/api/donations', require('./routes/donationRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/chat', require('./routes/chatRoutes'));
 
 app.get('/', (req, res) => {
     res.send('TrustAid API is running...');
